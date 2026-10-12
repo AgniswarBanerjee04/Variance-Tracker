@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Navbar from './components/Navbar';
 import MetricCards from './components/MetricCards';
 import DailyBurnRatePanel from './components/DailyBurnRatePanel';
@@ -11,7 +11,7 @@ import NLPSandboxModal from './components/NLPSandboxModal';
 import AuthPage from './components/AuthPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { api, authStorage } from './services/api';
-import { GraduationCap, ShieldCheck, Cpu, Database, Edit3 } from 'lucide-react';
+import { GraduationCap } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
@@ -122,14 +122,10 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="relative min-h-screen text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-200">
+      <div className="relative min-h-screen bg-[#07090E] text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
       
-      {/* Deep Animated Gradient Mesh Background */}
-      <div className="animated-mesh-bg">
-        <div className="mesh-blob mesh-blob-1" />
-        <div className="mesh-blob mesh-blob-2" />
-        <div className="mesh-blob mesh-blob-3" />
-      </div>
+      {/* Subtle, fixed top-center radial glow */}
+      <div className="obsidian-radial-glow" />
 
       {/* Top Glassmorphic Navbar */}
       <Navbar
@@ -143,7 +139,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 transform-gpu">
         
         {/* Metric Cards Banner with Framer Motion & CountUp */}
         <MetricCards metrics={metrics} />
@@ -188,12 +184,12 @@ export default function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="w-full pt-2"
         >
-          <div className="bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl p-4 sm:p-5 relative text-center">
+          <div className="obsidian-card p-4 sm:p-5 relative text-center">
             <div className="flex items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-indigo-300 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-indigo-400 shrink-0">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <p className="text-xs sm:text-sm font-normal text-white/50 tracking-wide">
+              <p className="text-xs sm:text-sm font-medium text-slate-400 tracking-wide">
                 Developed by Agniswar Banerjee &amp; Abhirup Dasgupta | Program: MCA | Department of Computer Applications | Meghnad Saha Institute of Technology
               </p>
             </div>
@@ -203,7 +199,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 bg-transparent py-4 text-center text-xs text-white/50 backdrop-blur-xl">
+      <footer className="relative z-10 border-t border-white/[0.06] bg-[#07090E]/80 py-4 text-center text-xs text-slate-400 font-medium backdrop-blur-md">
         <p>
           FastAPI Backend &bull; Async PostgreSQL (3NF) &bull; React & Tailwind &bull; Framer Motion &bull; Recharts &bull; NLP Anomaly Model
         </p>

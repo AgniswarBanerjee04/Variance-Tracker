@@ -6,7 +6,6 @@ import {
   User,
   ArrowRight,
   Sparkles,
-  GraduationCap,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -74,24 +73,20 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden">
+    <div className="relative min-h-screen bg-[#07090E] text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden">
       
-      {/* Background Animated Floating Mesh Blobs */}
-      <div className="animated-mesh-bg">
-        <div className="mesh-blob mesh-blob-1" />
-        <div className="mesh-blob mesh-blob-2" />
-        <div className="mesh-blob mesh-blob-3" />
-      </div>
+      {/* Fixed Ambient Obsidian Radial Glow Overlay */}
+      <div className="obsidian-radial-glow" />
 
       {/* Top Header Row with Skip Button */}
       <header className="w-full max-w-md pt-2 flex items-center justify-between z-10">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sky-400 backdrop-blur-xl">
+          <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-sky-400 backdrop-blur-md shadow-[0_0_12px_-2px_rgba(56,189,248,0.25)]">
             <Cpu className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-semibold text-sm text-white tracking-tight">Variance Tracker</span>
-            <span className="ml-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/5 text-slate-300 border border-white/10">
+            <span className="font-bold text-sm text-slate-50 tracking-tight">Variance Tracker</span>
+            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-300 border border-white/[0.08]">
               v1.0 MCA
             </span>
           </div>
@@ -100,7 +95,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
         {onBypass && (
           <button
             onClick={onBypass}
-            className="text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-xl transition-colors duration-200 flex items-center gap-1.5"
+            className="text-xs text-slate-400 hover:text-slate-100 px-3 py-1.5 rounded-xl bg-[#0D121D]/75 hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.18] backdrop-blur-md transition-all duration-200 flex items-center gap-1.5 cursor-pointer"
           >
             <span>Skip Demo</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -114,20 +109,16 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
           initial={{ opacity: 0, y: 16, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.45, ease: [0.25, 1, 0.5, 1] }}
-          className="w-full bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl sm:rounded-3xl p-7 sm:p-8 relative"
+          className="w-full obsidian-card rounded-2xl sm:rounded-3xl p-7 sm:p-8 relative"
         >
-          {/* Subtle Ambient Radial Glow */}
-          <div className="absolute -top-20 -right-20 w-44 h-44 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-violet-500/10 rounded-full blur-3xl pointer-events-none" />
-
           {/* Segmented Tab Switcher */}
-          <div className="flex p-1 rounded-xl bg-white/5 border border-white/10 mb-6 backdrop-blur-xl">
+          <div className="flex p-1 rounded-xl bg-[#07090E]/80 border border-white/[0.08] mb-6 backdrop-blur-md">
             <button
               type="button"
               onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors duration-200 ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
                 isLogin
-                  ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/20 border border-indigo-400/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -136,9 +127,9 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
             <button
               type="button"
               onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}
-              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors duration-200 ${
+              className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
                 !isLogin
-                  ? 'bg-white/10 text-white shadow-sm border border-white/10'
+                  ? 'bg-gradient-to-r from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-500/20 border border-indigo-400/30'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -148,10 +139,10 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
 
           {/* Card Title */}
           <div className="text-center mb-6">
-            <h1 className="text-lg font-bold text-white tracking-tight">
+            <h1 className="text-lg font-bold text-slate-50 tracking-tight">
               {isLogin ? 'Scholar Authentication' : 'Initialize Profile'}
             </h1>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-400 font-medium mt-1">
               {isLogin
                 ? 'Sign in to access 3NF normalized ledger & anomaly analytics'
                 : 'Create scholar profile to calibrate anomaly thresholds'}
@@ -207,7 +198,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Agniswar Banerjee"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-sky-400/70 transition-colors duration-200"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-slate-50 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500/70 transition-colors duration-200"
                   />
                 </div>
               </motion.div>
@@ -225,7 +216,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="scholar@msit.edu.in"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-sky-400/70 transition-colors duration-200"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-slate-50 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500/70 transition-colors duration-200"
                 />
               </div>
             </div>
@@ -242,12 +233,12 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-sky-400/70 transition-colors duration-200 font-mono"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-slate-50 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500/70 transition-colors duration-200 font-mono"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors duration-150"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors duration-150 cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -260,12 +251,12 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                 <button
                   type="button"
                   onClick={handleQuickFillDemo}
-                  className="text-sky-300 hover:text-sky-200 text-[11px] flex items-center gap-1 transition-colors duration-150"
+                  className="text-indigo-400 hover:text-indigo-300 text-[11px] font-medium flex items-center gap-1 transition-colors duration-150 cursor-pointer"
                 >
-                  <Sparkles className="w-3 h-3 text-sky-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Fill Demo Credentials</span>
                 </button>
-                <span className="text-[10px] text-slate-400">FastAPI JWT Auth</span>
+                <span className="text-[10px] text-slate-400 font-medium">FastAPI JWT Auth</span>
               </div>
             )}
 
@@ -275,7 +266,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl font-semibold text-xs text-white bg-sky-500/80 hover:bg-sky-500 border border-sky-400/40 shadow-lg shadow-sky-500/20 transition-all duration-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 transform-gpu active:scale-95 cursor-pointer"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -292,7 +283,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
 
       {/* Developer Footer with Lowered Opacity (Task 3 Directive) */}
       <footer className="w-full max-w-4xl z-10 py-4 text-center">
-        <p className="text-xs text-white/50 tracking-wide font-normal">
+        <p className="text-xs text-slate-400 font-medium tracking-wide">
           Developed by Agniswar Banerjee &amp; Abhirup Dasgupta | Program: MCA | Department of Computer Applications | Meghnad Saha Institute of Technology
         </p>
       </footer>

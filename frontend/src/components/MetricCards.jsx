@@ -28,20 +28,20 @@ const MetricCardItem = React.memo(function MetricCardItem({
         ease: [0.25, 1, 0.5, 1],
       }}
       whileHover={{ y: -3, transition: { duration: 0.18 } }}
-      className={`relative p-6 bg-white/5 backdrop-blur-2xl border ${
-        isAnomaly ? 'border-rose-400/25' : 'border-white/10'
-      } shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] rounded-2xl transition-colors duration-200 hover:border-white/20`}
+      className={`relative p-6 rounded-2xl ${
+        isAnomaly ? 'obsidian-card-rose' : 'obsidian-card'
+      }`}
     >
       <div className="flex items-center justify-between mb-3.5">
         <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
           {title}
         </span>
-        <div className={`p-2 rounded-xl ${iconBgClass} ${iconColorClass} border border-white/5`}>
+        <div className={`p-2 rounded-xl ${iconBgClass} ${iconColorClass}`}>
           <Icon className="w-4 h-4" />
         </div>
       </div>
 
-      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-baseline flex-wrap gap-1.5">
+      <div className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-50 flex items-baseline flex-wrap gap-1.5">
         {prefix && <span className={`${iconColorClass} font-semibold`}>{prefix}</span>}
         <CountUp
           start={0}
@@ -55,7 +55,7 @@ const MetricCardItem = React.memo(function MetricCardItem({
         {badge}
       </div>
 
-      <div className="text-xs text-slate-400 mt-2.5 flex items-center gap-1.5">
+      <div className="text-xs font-medium text-slate-400 mt-2.5 flex items-center gap-1.5">
         {subtitle}
       </div>
     </motion.div>
@@ -71,14 +71,14 @@ function MetricCardsBase({ metrics }) {
   const drainRatio = Number(metrics?.anomaly_drain_ratio) || 0;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-      {/* 1. Total Spend */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 transform-gpu">
+      {/* 1. Total Spend - Electric Cyan/Sapphire */}
       <MetricCardItem
         index={0}
         title="Total Ledger Spend"
         icon={IndianRupee}
-        iconColorClass="text-sky-300"
-        iconBgClass="bg-sky-500/10"
+        iconColorClass="text-sky-400"
+        iconBgClass="bg-sky-500/10 border border-sky-500/20 shadow-[0_0_15px_-3px_rgba(56,189,248,0.3)]"
         value={totalSpend}
         subtitle={
           <>
@@ -90,52 +90,52 @@ function MetricCardsBase({ metrics }) {
         }
       />
 
-      {/* 2. Micro-Anomaly Drain */}
+      {/* 2. Micro-Anomaly Drain - Radiant Rose/Coral */}
       <MetricCardItem
         index={1}
         title="Micro-Anomaly Drain"
         icon={AlertTriangle}
-        iconColorClass="text-rose-300"
-        iconBgClass="bg-rose-500/15"
+        iconColorClass="text-rose-400"
+        iconBgClass="bg-rose-500/10 border border-rose-500/20 shadow-[0_0_15px_-3px_rgba(244,63,94,0.3)]"
         value={anomalyDrain}
         isAnomaly={true}
         badge={
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-200 font-semibold border border-rose-400/25 ml-1">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-300 font-semibold border border-rose-500/20 ml-1">
             <CountUp start={0} end={drainRatio} duration={1.2} decimals={1} />% Leak
           </span>
         }
         subtitle={
-          <span className="flex items-center gap-1 text-rose-300/80">
+          <span className="flex items-center gap-1 text-rose-300 font-medium">
             <TrendingDown className="w-3.5 h-3.5" />
             <span>Recurring spends &le; ₹500</span>
           </span>
         }
       />
 
-      {/* 3. Daily Burn Rate */}
+      {/* 3. Daily Burn Rate - Warm Amber */}
       <MetricCardItem
         index={2}
         title="Daily Burn Rate"
         icon={Flame}
-        iconColorClass="text-amber-300"
-        iconBgClass="bg-amber-500/10"
+        iconColorClass="text-amber-400"
+        iconBgClass="bg-amber-500/10 border border-amber-500/20 shadow-[0_0_15px_-3px_rgba(251,191,36,0.3)]"
         value={burnRate}
-        suffix={<span className="text-xs text-slate-400 font-normal ml-0.5">/ day</span>}
+        suffix={<span className="text-xs text-slate-400 font-medium ml-0.5">/ day</span>}
         subtitle="Mean daily capital depletion rate"
       />
 
-      {/* 4. Flagged Ratio */}
+      {/* 4. Flagged Ratio - Iris Violet */}
       <MetricCardItem
         index={3}
         title="Flagged Transactions"
         icon={Layers}
-        iconColorClass="text-indigo-300"
-        iconBgClass="bg-indigo-500/10"
+        iconColorClass="text-violet-400"
+        iconBgClass="bg-violet-500/10 border border-violet-500/20 shadow-[0_0_15px_-3px_rgba(167,139,250,0.3)]"
         value={anomaliesFlagged}
         decimals={0}
         prefix={null}
         suffix={
-          <span className="text-sm font-normal text-slate-400 ml-1">
+          <span className="text-sm font-medium text-slate-400 ml-1">
             / <CountUp start={0} end={totalTxns} duration={1.4} /> txns
           </span>
         }

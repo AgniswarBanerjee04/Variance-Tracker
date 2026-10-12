@@ -87,18 +87,18 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-[#07090E]/80 backdrop-blur-md flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 12 }}
         transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
-        className="w-full max-w-xl rounded-2xl sm:rounded-3xl p-7 bg-white/5 backdrop-blur-2xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] relative overflow-hidden"
+        className="w-full max-w-xl rounded-2xl sm:rounded-3xl p-7 obsidian-card relative overflow-hidden"
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors duration-200"
+          className="absolute top-5 right-5 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.08] transition-colors duration-200 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -106,14 +106,14 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
         {/* Modal Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-white/5 border border-white/10 text-sky-400 backdrop-blur-xl">
+            <div className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sky-400 backdrop-blur-md shadow-[0_0_12px_-2px_rgba(56,189,248,0.25)]">
               <UploadCloud className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white tracking-tight">
+              <h3 className="text-base font-bold text-slate-50 tracking-tight">
                 Ingest Bank & UPI Statement
               </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
                 Upload raw CSV statements to normalize irregular UPI strings and isolate micro-spends.
               </p>
             </div>
@@ -126,12 +126,12 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors duration-200 ${
+          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors duration-200 transform-gpu ${
             isDragging
-              ? 'border-sky-400 bg-sky-500/10'
+              ? 'border-indigo-400 bg-indigo-500/10'
               : selectedFile
               ? 'border-emerald-400/40 bg-emerald-500/5'
-              : 'border-white/10 hover:border-white/20 bg-white/[0.03]'
+              : 'border-white/[0.08] hover:border-white/[0.18] bg-[#07090E]/60'
           }`}
         >
           <input
@@ -176,12 +176,12 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
             type="button"
             onClick={handleLoadSampleData}
             disabled={uploading}
-            className="text-sky-300 hover:text-sky-200 font-medium flex items-center gap-1.5 transition-colors duration-150 disabled:opacity-50"
+            className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1.5 transition-colors duration-150 disabled:opacity-50 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
             <span>Load Evaluation Mock Data (test_statement.csv)</span>
           </button>
-          <span className="text-[11px] text-slate-400">12 Mock Records</span>
+          <span className="text-[11px] text-slate-400 font-medium">12 Mock Records</span>
         </div>
 
         {/* Feedback Alerts */}
@@ -192,7 +192,7 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-400/20 text-rose-300 text-xs flex items-center gap-2"
+              className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2"
             >
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
               <span>{error}</span>
@@ -205,17 +205,17 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-400/20 text-emerald-300 text-xs"
+              className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs"
             >
-              <div className="flex items-center gap-2 font-medium text-emerald-200">
+              <div className="flex items-center gap-2 font-semibold text-emerald-300">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>Ingestion Complete & Normalized into 3NF Ledger!</span>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-2.5 font-mono text-[11px] text-slate-300">
-                <div>Total Ingested: <strong className="text-white">{result.total_processed}</strong></div>
-                <div>Anomalies Flagged: <strong className="text-rose-300">{result.anomalies_detected}</strong></div>
+                <div>Total Ingested: <strong className="text-slate-50">{result.total_processed}</strong></div>
+                <div>Anomalies Flagged: <strong className="text-rose-400">{result.anomalies_detected}</strong></div>
                 <div>Normal Spends: <strong className="text-emerald-400">{result.normal_spends}</strong></div>
-                <div>Parsed Spend: <strong className="text-sky-300">₹{result.total_expenditure_parsed?.toFixed(2)}</strong></div>
+                <div>Parsed Spend: <strong className="text-sky-400">₹{result.total_expenditure_parsed?.toFixed(2)}</strong></div>
               </div>
             </motion.div>
           )}
@@ -226,7 +226,7 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors duration-200"
+            className="px-4 py-2 text-xs font-medium rounded-xl text-slate-400 hover:text-slate-100 hover:bg-white/[0.08] transition-colors duration-200 cursor-pointer"
           >
             Close
           </button>
@@ -234,7 +234,7 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
             type="button"
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            className="px-4 py-2 text-xs font-semibold rounded-xl text-white bg-sky-500/80 hover:bg-sky-500 border border-sky-400/30 transition-all duration-200 flex items-center gap-2 disabled:opacity-40"
+            className="px-4 py-2 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-2 disabled:opacity-40 transform-gpu active:scale-95 cursor-pointer"
           >
             {uploading ? (
               <>
