@@ -22,14 +22,16 @@ async def lifespan(app: FastAPI):
     Application lifecycle manager.
     Initializes database tables and default seed data on startup.
     """
-    # Create tables if not exist (async SQLite / Postgres)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        
-    # Seed initial data (categories & demo scholar user)
-    async with AsyncSessionLocal() as session:
-        await seed_default_categories(session)
-        await get_or_create_demo_user(session)
+    # Initialize cloud PostgreSQL tables and seed data
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            
+        async with AsyncSessionLocal() as session:
+            await seed_default_categories(session)
+            await get_or_create_demo_user(session)
+    except Exception as exc:
+        print(f"[Variance Tracker] Startup database initialization notice: {exc}")
         
     yield
     
@@ -58,18 +60,10 @@ at Meghnad Saha Institute of Technology.
 )
 
 # CORS Middleware Configuration
-cors_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-if hasattr(settings, "CORS_ORIGINS") and settings.CORS_ORIGINS:
-    for origin in settings.CORS_ORIGINS:
-        if origin not in cors_origins:
-            cors_origins.append(origin)
-
+# Note: When allow_credentials=True, origins cannot use "*" wildcard per CORS specification.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=["https://variance-tracker-x56m.vercel.app", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -81,6 +75,12 @@ app.include_router(auth_router, prefix=api_prefix)
 app.include_router(transactions_router, prefix=api_prefix)
 app.include_router(analytics_router, prefix=api_prefix)
 app.include_router(nlp_router, prefix=api_prefix)
+
+# Fallback root mounting for direct base URL routing
+app.include_router(auth_router)
+app.include_router(transactions_router)
+app.include_router(analytics_router)
+app.include_router(nlp_router)
 
 
 @app.get("/", tags=["System"])

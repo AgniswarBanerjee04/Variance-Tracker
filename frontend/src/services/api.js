@@ -3,15 +3,8 @@
  * Supports JWT authentication, statement ingestion, and analytics endpoints.
  */
 
-// Base URL pointing directly to the FastAPI backend port (http://localhost:8000 or http://127.0.0.1:8000)
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined' && window.location.hostname === '127.0.0.1') {
-    return 'http://127.0.0.1:8000/api/v1';
-  }
-  return 'http://localhost:8000/api/v1';
-};
-
-const API_BASE = getApiBaseUrl();
+// Base API URL strictly configured from Vite environment variable with safe fallback for Vercel
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://variance-tracker-chi.vercel.app';
 
 const TOKEN_KEY = 'vt_auth_token';
 const USER_KEY = 'vt_auth_user';
@@ -36,7 +29,19 @@ export const authStorage = {
 
 async function safeFetch(url, options = {}) {
   try {
-    const response = await fetch(url, options);
+    // Normalize target URL to ensure /api/v1 prefix is routed correctly when calling API_BASE
+    let targetUrl = url;
+    if (
+      targetUrl.startsWith(API_BASE) &&
+      !API_BASE.endsWith('/api/v1') &&
+      !targetUrl.includes('/api/v1/') &&
+      !targetUrl.endsWith('/api/v1')
+    ) {
+      const cleanBase = API_BASE.replace(/\/+$/, '');
+      targetUrl = targetUrl.replace(cleanBase, `${cleanBase}/api/v1`);
+    }
+
+    const response = await fetch(targetUrl, options);
     if (!response.ok) {
       if (response.status === 502 || response.status === 503 || response.status === 504) {
         throw new Error('Cannot connect to backend server. Is FastAPI running?');

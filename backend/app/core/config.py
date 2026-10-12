@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     API_V1_PREFIX: str = "/api/v1"
     
-    # Database Settings
-    DATABASE_URL: str = "sqlite+aiosqlite:///./variance_tracker.db"
+    # Database Settings (Cloud PostgreSQL)
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/variance_tracker"
     
     # JWT Authentication
     SECRET_KEY: str = "super-secret-mca-minor-project-key-change-in-production"
@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     
     # CORS Origins
     CORS_ORIGINS: List[str] = [
+        "https://variance-tracker-x56m.vercel.app",
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",

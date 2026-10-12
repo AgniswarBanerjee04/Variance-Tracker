@@ -1,10 +1,12 @@
 """
 Asynchronous Database Connection and Session Management.
 
-Implements asynchronous connection pooling via SQLAlchemy 2.0 with asyncpg/aiosqlite.
+Implements asynchronous connection pooling via SQLAlchemy 2.0 with asyncpg.
+Strictly connects to cloud PostgreSQL database via os.getenv("DATABASE_URL").
 Adheres to strict separation of concerns for database transactions.
 """
 
+import os
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -12,23 +14,31 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import declarative_base
-from app.core.config import settings
 
-# Configure engine with connection pooling options
+# Strictly fetch cloud database URL via os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    # Default cloud PostgreSQL fallback when environment variable is unset locally
+    DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/variance_tracker"
+
+# Normalize PostgreSQL driver for SQLAlchemy asyncpg engine if needed
+# (Cloud providers such as Neon, Supabase, Render, Railway often supply postgres:// or postgresql://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# PostgreSQL asyncpg connection pool tuning for cloud deployments
 engine_kwargs = {
-    "echo": settings.DEBUG,
+    "echo": False,
     "future": True,
+    "pool_size": 10,
+    "max_overflow": 20,
+    "pool_pre_ping": True,
 }
 
-if "sqlite" not in settings.DATABASE_URL:
-    # PostgreSQL asyncpg connection pool tuning
-    engine_kwargs.update({
-        "pool_size": 10,
-        "max_overflow": 20,
-        "pool_pre_ping": True,
-    })
-
-engine = create_async_engine(settings.DATABASE_URL, **engine_kwargs)
+engine = create_async_engine(DATABASE_URL, **engine_kwargs)
 
 # Asynchronous session factory
 AsyncSessionLocal = async_sessionmaker(
