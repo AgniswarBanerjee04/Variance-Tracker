@@ -82,6 +82,34 @@ app.include_router(transactions_router)
 app.include_router(analytics_router)
 app.include_router(nlp_router)
 
+# Direct root aliases for authentication endpoints (e.g. /login, /signup, /me)
+from app.routers.auth import login as auth_login, register as auth_register, get_profile as auth_me
+from app.schemas.user import UserRegisterRequest, TokenResponse, UserResponse
+from app.routers.deps import get_current_user
+from app.models.user import User
+from app.core.database import get_db
+from fastapi import Depends, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
+@app.post("/login", response_model=TokenResponse, tags=["Authentication"])
+@app.post("/login/", response_model=TokenResponse, tags=["Authentication"])
+@app.post("/login-json", response_model=TokenResponse, tags=["Authentication"])
+@app.post("/login-json/", response_model=TokenResponse, tags=["Authentication"])
+async def root_login(request: Request, db: AsyncSession = Depends(get_db)):
+    return await auth_login(request, db)
+
+@app.post("/signup", response_model=UserResponse, status_code=201, tags=["Authentication"])
+@app.post("/signup/", response_model=UserResponse, status_code=201, tags=["Authentication"])
+@app.post("/register", response_model=UserResponse, status_code=201, tags=["Authentication"])
+@app.post("/register/", response_model=UserResponse, status_code=201, tags=["Authentication"])
+async def root_signup(user_in: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
+    return await auth_register(user_in, db)
+
+@app.get("/me", response_model=UserResponse, tags=["Authentication"])
+@app.get("/me/", response_model=UserResponse, tags=["Authentication"])
+async def root_me(current_user: User = Depends(get_current_user)):
+    return await auth_me(current_user)
+
 
 @app.get("/", tags=["System"])
 async def root():

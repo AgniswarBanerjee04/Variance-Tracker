@@ -31,6 +31,7 @@ router = APIRouter(prefix="/analytics", tags=["Analytics"])
 
 
 @router.get("/summary", response_model=SummaryMetricsResponse)
+@router.get("/summary/", response_model=SummaryMetricsResponse)
 async def summary(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -40,6 +41,7 @@ async def summary(
 
 
 @router.get("/daily-burn-rate", response_model=DailyBurnRateResponse)
+@router.get("/daily-burn-rate/", response_model=DailyBurnRateResponse)
 async def daily_burn_rate(
     days: int = Query(default=30, ge=1, le=365, description="Number of past days to aggregate"),
     current_user: User = Depends(get_current_user),
@@ -55,6 +57,7 @@ async def daily_burn_rate(
 
 
 @router.get("/categorical-variance", response_model=CategoricalVarianceResponse)
+@router.get("/categorical-variance/", response_model=CategoricalVarianceResponse)
 async def categorical_variance(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -69,6 +72,7 @@ async def categorical_variance(
 
 
 @router.get("/anomalies", response_model=AnomalyListResponse)
+@router.get("/anomalies/", response_model=AnomalyListResponse)
 async def anomalies(
     limit: int = Query(default=50, ge=1, le=200, description="Max anomaly rows to return"),
     current_user: User = Depends(get_current_user),

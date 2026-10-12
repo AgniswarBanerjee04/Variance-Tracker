@@ -13,6 +13,7 @@ router = APIRouter(prefix="/nlp", tags=["Natural Language Processing"])
 
 
 @router.post("/parse-raw", response_model=NLPTransactionResult)
+@router.post("/parse-raw/", response_model=NLPTransactionResult)
 async def parse_raw_upi(
     payload: RawUPIParseRequest,
 ) -> NLPTransactionResult:

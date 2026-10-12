@@ -4,7 +4,9 @@
  */
 
 // Base API URL strictly configured from Vite environment variable with safe fallback for Vercel
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://variance-tracker-chi.vercel.app';
+// Ensure no trailing slashes on API_BASE to avoid double-slash URL construction
+const rawBase = import.meta.env.VITE_API_BASE_URL || 'https://variance-tracker-chi.vercel.app';
+const API_BASE = rawBase.replace(/\/+$/, '');
 
 const TOKEN_KEY = 'vt_auth_token';
 const USER_KEY = 'vt_auth_user';
@@ -29,19 +31,49 @@ export const authStorage = {
 
 async function safeFetch(url, options = {}) {
   try {
-    // Normalize target URL to ensure /api/v1 prefix is routed correctly when calling API_BASE
-    let targetUrl = url;
+    // 1. Remove duplicate slashes in path while preserving protocol (http:// or https://)
+    let targetUrl = url.replace(/([^:]\/)\/+/g, '$1');
+
+    // 2. Strip trailing slashes before query parameters or at end of URL to prevent route mismatches
+    targetUrl = targetUrl.replace(/\/+(\?|$)/, '$1');
+
+    // 3. Normalize target URL to ensure /api/v1 prefix is routed correctly when calling bare origin
     if (
       targetUrl.startsWith(API_BASE) &&
       !API_BASE.endsWith('/api/v1') &&
       !targetUrl.includes('/api/v1/') &&
-      !targetUrl.endsWith('/api/v1')
+      !targetUrl.endsWith('/api/v1') &&
+      !targetUrl.includes('/health') &&
+      targetUrl !== API_BASE
     ) {
       const cleanBase = API_BASE.replace(/\/+$/, '');
       targetUrl = targetUrl.replace(cleanBase, `${cleanBase}/api/v1`);
+      targetUrl = targetUrl.replace(/([^:]\/)\/+/g, '$1');
+      targetUrl = targetUrl.replace(/\/+(\?|$)/, '$1');
     }
 
-    const response = await fetch(targetUrl, options);
+    let response = await fetch(targetUrl, options);
+
+    // 4. Transparent fallback retry if 404 occurs (e.g. server mounted at root instead of /api/v1, or vice versa)
+    if (response.status === 404) {
+      let fallbackUrl = null;
+      if (targetUrl.includes('/api/v1/auth/login')) {
+        fallbackUrl = targetUrl.replace('/api/v1/auth/login', '/api/v1/auth/login-json');
+      } else if (targetUrl.includes('/api/v1/')) {
+        fallbackUrl = targetUrl.replace('/api/v1/', '/');
+      } else if (!targetUrl.includes('/api/v1/')) {
+        const cleanBase = API_BASE.replace(/\/+$/, '');
+        fallbackUrl = targetUrl.replace(cleanBase, `${cleanBase}/api/v1`);
+      }
+      if (fallbackUrl && fallbackUrl !== targetUrl) {
+        fallbackUrl = fallbackUrl.replace(/([^:]\/)\/+/g, '$1').replace(/\/+(\?|$)/, '$1');
+        const retryResp = await fetch(fallbackUrl, options);
+        if (retryResp.ok) {
+          response = retryResp;
+        }
+      }
+    }
+
     if (!response.ok) {
       if (response.status === 502 || response.status === 503 || response.status === 504) {
         throw new Error('Cannot connect to backend server. Is FastAPI running?');
@@ -79,9 +111,9 @@ function getAuthHeaders(isJson = true) {
 }
 
 export const api = {
-  // Authentication
+  // Authentication - paths constructed without double-slashes and without trailing slashes
   async login(email, password) {
-    const data = await safeFetch(`${API_BASE}/auth/login-json`, {
+    const data = await safeFetch(`${API_BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -145,9 +177,9 @@ export const api = {
     });
   },
 
-  // Transactions Ledger
+  // Transactions Ledger - no trailing slash before query parameters
   async getTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null) {
-    let url = `${API_BASE}/transactions/?page=${page}&limit=${limit}&variance_only=${varianceOnly}`;
+    let url = `${API_BASE}/transactions?page=${page}&limit=${limit}&variance_only=${varianceOnly}`;
     if (categoryId) url += `&category_id=${categoryId}`;
     return safeFetch(url, {
       headers: getAuthHeaders(false),

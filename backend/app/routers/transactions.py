@@ -33,6 +33,7 @@ router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
 
 @router.post("/upload-csv", response_model=CSVIngestionSummary)
+@router.post("/upload-csv/", response_model=CSVIngestionSummary)
 async def upload_csv(
     file: UploadFile = File(..., description="CSV bank or UPI transaction statement"),
     current_user: User = Depends(get_current_user),
@@ -65,6 +66,7 @@ async def upload_csv(
         )
 
 
+@router.get("", response_model=PaginatedTransactionsResponse)
 @router.get("/", response_model=PaginatedTransactionsResponse)
 async def get_transactions(
     page: int = Query(default=1, ge=1, description="Page number"),
@@ -92,6 +94,7 @@ async def get_transactions(
     )
 
 
+@router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 async def create_single_transaction(
     tx_in: TransactionCreate,
@@ -125,6 +128,7 @@ async def create_single_transaction(
 
 
 @router.get("/categories", response_model=List[CategoryResponse])
+@router.get("/categories/", response_model=List[CategoryResponse])
 async def list_categories(
     db: AsyncSession = Depends(get_db),
 ) -> List[CategoryResponse]:
