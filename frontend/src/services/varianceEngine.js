@@ -19,6 +19,15 @@ export const CLIENT_MISC_LIMIT_KEY = 'vt_misc_spend_limit';
 export const MICRO_SPEND_THRESHOLD = 500.0;
 export const DEFAULT_MISC_LIMIT = 2000.0;
 
+export function hasSavedMiscSpendLimit() {
+  try {
+    const val = localStorage.getItem(CLIENT_MISC_LIMIT_KEY);
+    return Boolean(val && !isNaN(parseFloat(val)) && parseFloat(val) > 0);
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Persisted user-defined maximum spend limit for miscellaneous / micro-anomaly items.
  */
@@ -262,69 +271,6 @@ export function clearStoredTransactions() {
   } catch (err) {
     console.warn('[Variance Tracker] Storage warning:', err);
   }
-}
-
-/**
- * Seeds initial demo transactions if localStorage is empty.
- */
-const SEED_DATA = [
-  { date: '2026-10-01 08:30', desc: 'UPI/40123/PAYTM*QR_Tea/HDFC', amt: 25.0, ref: 'UPI4012301' },
-  { date: '2026-10-01 10:15', desc: 'UPI/DR/Rapido Bike/Paytm', amt: 45.0, ref: 'UPI4012302' },
-  { date: '2026-10-01 13:40', desc: 'UPI/CR/391024/Swiggy/ICICI', amt: 280.0, ref: 'UPI4012303' },
-  { date: '2026-10-01 17:10', desc: 'UPI/3910/Chai_Point/Axis', amt: 60.0, ref: 'UPI4012304' },
-  { date: '2026-10-01 20:05', desc: 'UPI/DR/481920/Zomato/SBI', amt: 410.0, ref: 'UPI4012305' },
-  { date: '2026-10-02 08:45', desc: 'UPI/Tapri_Chai/Paytm', amt: 20.0, ref: 'UPI4012306' },
-  { date: '2026-10-02 11:20', desc: 'UPI/DMRC_Metro/SBI', amt: 100.0, ref: 'UPI4012307' },
-  { date: '2026-10-02 14:00', desc: 'POS/481920/AMZN Mktp/SBI', amt: 2499.0, ref: 'UPI4012308' },
-  { date: '2026-10-02 16:30', desc: 'UPI/Starbucks_Coffee/HDFC', amt: 320.0, ref: 'UPI4012309' },
-  { date: '2026-10-02 19:15', desc: 'UPI/Blinkit_Snacks/Paytm', amt: 185.0, ref: 'UPI4012310' },
-  { date: '2026-10-03 09:10', desc: 'UPI/Tea_Stall_Campus/ICICI', amt: 30.0, ref: 'UPI4012311' },
-  { date: '2026-10-03 12:00', desc: 'UPI/Bescom_Electricity_Power/HDFC', amt: 1850.0, ref: 'UPI4012312' },
-  { date: '2026-10-03 15:45', desc: 'UPI/CCD_Beverage/Axis', amt: 240.0, ref: 'UPI4012313' },
-  { date: '2026-10-03 18:20', desc: 'UPI/Zepto_Icecream/SBI', amt: 140.0, ref: 'UPI4012314' },
-  { date: '2026-10-04 08:30', desc: 'UPI/40123/PAYTM*QR_Tea/HDFC', amt: 25.0, ref: 'UPI4012315' },
-  { date: '2026-10-04 11:10', desc: 'UPI/Uber_Ride/HDFC', amt: 290.0, ref: 'UPI4012316' },
-  { date: '2026-10-04 13:30', desc: 'UPI/McDonalds_QSR/ICICI', amt: 340.0, ref: 'UPI4012317' },
-  { date: '2026-10-04 16:50', desc: 'UPI/Local_Pan_Shop_Biscuits/Paytm', amt: 45.0, ref: 'UPI4012318' },
-  { date: '2026-10-04 21:00', desc: 'UPI/Netflix_Monthly/HDFC', amt: 199.0, ref: 'UPI4012319' },
-  { date: '2026-10-05 08:40', desc: 'UPI/Chai_Sutta_Bar/Paytm', amt: 35.0, ref: 'UPI4012320' },
-  { date: '2026-10-05 10:15', desc: 'UPI/Airtel_Broadband_Bill/Axis', amt: 825.0, ref: 'UPI4012321' },
-  { date: '2026-10-05 13:00', desc: 'UPI/Burger_King/SBI', amt: 270.0, ref: 'UPI4012322' },
-  { date: '2026-10-05 17:30', desc: 'UPI/Chaayos_Snack/HDFC', amt: 190.0, ref: 'UPI4012323' },
-  { date: '2026-10-05 20:30', desc: 'POS/DMart_Supermarts/HDFC', amt: 3820.0, ref: 'UPI4012324' },
-  { date: '2026-10-06 09:00', desc: 'UPI/Campus_Canteen_Tea/SBI', amt: 25.0, ref: 'UPI4012325' },
-  { date: '2026-10-06 14:10', desc: 'UPI/Swiggy_Lunch/ICICI', amt: 310.0, ref: 'UPI4012326' },
-  { date: '2026-10-06 16:45', desc: 'UPI/Street_Vending_Coffee/Paytm', amt: 30.0, ref: 'UPI4012327' },
-  { date: '2026-10-06 19:20', desc: 'UPI/Spotify_India/HDFC', amt: 119.0, ref: 'UPI4012328' },
-  { date: '2026-10-07 08:30', desc: 'UPI/40123/PAYTM*QR_Tea/HDFC', amt: 25.0, ref: 'UPI4012329' },
-  { date: '2026-10-07 12:45', desc: 'UPI/Indian_Oil_Petrol/SBI', amt: 1200.0, ref: 'UPI4012330' },
-  { date: '2026-10-07 15:30', desc: 'UPI/Blinkit_Munchies/Paytm', amt: 215.0, ref: 'UPI4012331' },
-  { date: '2026-10-07 18:15', desc: 'UPI/KFC_Snack/Axis', amt: 380.0, ref: 'UPI4012332' },
-];
-
-function seedInitialTransactions() {
-  const seeded = SEED_DATA.map((item, idx) => {
-    const nlp = analyzeTransaction(item.desc, item.amt);
-    const cat = DEFAULT_CATEGORIES.find((c) => c.name === nlp.category) || DEFAULT_CATEGORIES[0];
-    return {
-      id: `seed-tx-${idx + 1}`,
-      user_id: 'scholar-demo-user',
-      category_id: cat.id,
-      category: cat,
-      date: new Date(item.date).toISOString(),
-      amount: item.amt,
-      raw_description: item.desc,
-      clean_merchant: nlp.clean_merchant,
-      variance_flag: nlp.variance_flag,
-      anomaly_reason: nlp.reason,
-      reference_no: item.ref,
-      source_file: 'seed_statement.csv',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-  });
-  saveStoredTransactions(seeded);
-  return seeded;
 }
 
 /**

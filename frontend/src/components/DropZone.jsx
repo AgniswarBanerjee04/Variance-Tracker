@@ -106,60 +106,6 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
     }
   };
 
-  const handleLoadSampleBatch = async () => {
-    setUploading(true);
-    setError(null);
-    try {
-      // Month 1: October 2026 UPI Statement
-      const octCsv = `Date,Description,Amount,Reference_No
-2026-10-01 08:30,UPI/40123/PAYTM*QR_Tea/HDFC,25.00,UPI4012301
-2026-10-01 10:15,UPI/DR/Rapido Bike/Paytm,45.00,UPI4012302
-2026-10-01 13:40,UPI/CR/391024/Swiggy/ICICI,280.00,UPI4012303
-2026-10-02 08:45,UPI/Tapri_Chai/Paytm,20.00,UPI4012306
-2026-10-02 14:00,POS/481920/AMZN Mktp/SBI,2499.00,UPI4012308
-2026-10-03 12:00,UPI/Bescom_Electricity_Power/HDFC,1850.00,UPI4012312
-2026-10-04 13:30,UPI/McDonalds_QSR/ICICI,340.00,UPI4012317
-2026-10-04 21:00,UPI/Netflix_Monthly/HDFC,199.00,UPI4012319`;
-
-      // Month 2: November 2026 UPI Statement (with common vendors Swiggy, Zomato, Chai, and 1 duplicate to demonstrate deduplication)
-      const novCsv = `Date,Description,Amount,Reference_No
-2026-10-01 13:40,UPI/CR/391024/Swiggy/ICICI,280.00,UPI4012303
-2026-11-01 08:40,UPI/Chai_Sutta_Bar/Paytm,35.00,UPI5012401
-2026-11-02 13:00,UPI/Swiggy_Food_Delivery/ICICI,310.00,UPI5012402
-2026-11-03 20:15,UPI/Zomato_Dinner/SBI,420.00,UPI5012403
-2026-11-04 11:20,UPI/Uber_Ride/HDFC,280.00,UPI5012404
-2026-11-05 16:30,UPI/Starbucks_Coffee/HDFC,320.00,UPI5012405
-2026-11-06 18:20,UPI/Zepto_Groceries/SBI,165.00,UPI5012406
-2026-11-07 19:30,UPI/Spotify_Premium/HDFC,119.00,UPI5012407`;
-
-      const blob1 = new Blob([octCsv], { type: 'text/csv' });
-      const file1 = new File([blob1], 'october_2026_upi.csv', { type: 'text/csv' });
-
-      const blob2 = new Blob([novCsv], { type: 'text/csv' });
-      const file2 = new File([blob2], 'november_2026_upi.csv', { type: 'text/csv' });
-
-      setSelectedFiles([file1, file2]);
-
-      const summary = await api.uploadCSV([file1, file2]);
-      setResult(summary);
-
-      // Update global/parent state immediately
-      if (onUploadSuccess) {
-        await onUploadSuccess(summary);
-      }
-
-      setSelectedFiles([]);
-
-      // Auto-close modal immediately
-      if (onClose) {
-        onClose();
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to ingest sample batch statements.');
-      setUploading(false);
-    }
-  };
-
   const totalBytes = selectedFiles.reduce((acc, f) => acc + (f.size || 0), 0);
   const totalSizeKb = (totalBytes / 1024).toFixed(1);
 
@@ -311,20 +257,6 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
             </div>
           </div>
         )}
-
-        {/* Fast Action: Quick Ingest Multi-Month Batch Mock Statement */}
-        <div className="mt-4 flex items-center justify-between text-xs">
-          <button
-            type="button"
-            onClick={handleLoadSampleBatch}
-            disabled={uploading}
-            className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1.5 transition-colors duration-150 disabled:opacity-50 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Load Multi-Month Batch (Oct + Nov UPI Statements)</span>
-          </button>
-          <span className="text-[11px] text-slate-400 font-medium">2 Files &bull; Deduplication Demo</span>
-        </div>
 
         {/* Feedback Alerts */}
         <AnimatePresence>

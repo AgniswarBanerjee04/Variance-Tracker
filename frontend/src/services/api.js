@@ -18,6 +18,7 @@ import {
   listTransactions as computeListTransactions,
   getMiscSpendLimit,
   setMiscSpendLimit,
+  hasSavedMiscSpendLimit,
   DEFAULT_CATEGORIES,
   CLIENT_USER_KEY,
   CLIENT_TOKEN_KEY,
@@ -93,6 +94,10 @@ export const api = {
   },
 
   // Miscellaneous Spend Limit (Persistent in localStorage)
+  hasSavedMiscSpendLimit() {
+    return hasSavedMiscSpendLimit();
+  },
+
   getMiscSpendLimit() {
     return getMiscSpendLimit();
   },

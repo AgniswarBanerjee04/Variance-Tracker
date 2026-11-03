@@ -9,15 +9,25 @@ import TransactionLedgerTable from './components/TransactionLedgerTable';
 import DropZone from './components/DropZone';
 import NLPSandboxModal from './components/NLPSandboxModal';
 import AuthPage from './components/AuthPage';
-import ErrorBoundary from './components/ErrorBoundary';
+import OnboardingLimitModal from './components/OnboardingLimitModal';
 import MiscSpendAlertModal from './components/MiscSpendAlertModal';
 import BudgetLimitModal from './components/BudgetLimitModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { api, authStorage } from './services/api';
 import { GraduationCap, CheckCircle2, X, UploadCloud, Upload } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
-  const [viewMode, setViewMode] = useState(() => (authStorage.getToken() ? 'dashboard' : 'auth'));
+  
+  // Mandatory Onboarding Guard: If authenticated but no spend limit is configured in localStorage,
+  // enforce onboarding view mode before allowing access to the main dashboard.
+  const [viewMode, setViewMode] = useState(() => {
+    const token = authStorage.getToken();
+    if (!token) return 'auth';
+    if (!api.hasSavedMiscSpendLimit()) return 'onboarding';
+    return 'dashboard';
+  });
+
   const [loading, setLoading] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isSandboxOpen, setIsSandboxOpen] = useState(false);
@@ -32,13 +42,31 @@ export default function App() {
     totalSpend: 0,
   });
 
-  // Analytics states (defaults to null / 0 for clean initial empty state)
-  const [metrics, setMetrics] = useState(null);
-  const [burnRateData, setBurnRateData] = useState(null);
-  const [categoricalData, setCategoricalData] = useState(null);
-  const [anomaliesData, setAnomaliesData] = useState(null);
+  // Analytics states (strictly 0 and [] on initial render - Hard Delete of all Mock Data)
+  const [metrics, setMetrics] = useState({
+    total_transactions: 0,
+    total_expenditure: 0,
+    total_anomalies_flagged: 0,
+    total_anomaly_drain: 0,
+    average_burn_rate: 0,
+    anomaly_drain_ratio: 0,
+  });
+  const [burnRateData, setBurnRateData] = useState({
+    items: [],
+    average_daily_burn: 0,
+    highest_spend_date: null,
+  });
+  const [categoricalData, setCategoricalData] = useState({
+    items: [],
+    dominant_category: null,
+  });
+  const [anomaliesData, setAnomaliesData] = useState({
+    items: [],
+    total_anomalies: 0,
+    total_anomaly_drain: 0,
+  });
 
-  // Transactions ledger state
+  // Transactions ledger state (strictly empty initially)
   const [transactions, setTransactions] = useState([]);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [page, setPage] = useState(1);
@@ -54,10 +82,15 @@ export default function App() {
         .then((user) => {
           setCurrentUser(user);
           authStorage.setUser(user);
+          // If no budget limit has been saved, prompt onboarding
+          if (!api.hasSavedMiscSpendLimit()) {
+            setViewMode('onboarding');
+          }
         })
         .catch(() => {
           authStorage.removeToken();
           setCurrentUser(null);
+          setViewMode('auth');
         });
     }
   }, []);
@@ -142,9 +175,21 @@ export default function App() {
     loadDashboardData();
   }, [loadDashboardData]);
 
+  // Transition from Auth: Enforce onboarding if no limit exists
   const handleAuthSuccess = (user) => {
     const verifiedUser = user || authStorage.getUser() || { full_name: 'User Profile' };
     setCurrentUser(verifiedUser);
+    if (!api.hasSavedMiscSpendLimit()) {
+      setViewMode('onboarding');
+    } else {
+      setViewMode('dashboard');
+      loadDashboardData();
+    }
+  };
+
+  // Transition from Mandatory Onboarding to Main Dashboard
+  const handleOnboardingComplete = (savedLimit) => {
+    setMiscLimit(savedLimit);
     setViewMode('dashboard');
     loadDashboardData();
   };
@@ -155,19 +200,38 @@ export default function App() {
     setViewMode('auth');
   };
 
-  // If in Auth mode, show full-screen animated Auth Portal
+  // View Mode: Authentication Portal
   if (viewMode === 'auth') {
     return (
       <ErrorBoundary>
         <AuthPage
           onAuthSuccess={handleAuthSuccess}
-          onBypass={() => setViewMode('dashboard')}
+          onBypass={() => {
+            if (!api.hasSavedMiscSpendLimit()) {
+              setViewMode('onboarding');
+            } else {
+              setViewMode('dashboard');
+            }
+          }}
         />
       </ErrorBoundary>
     );
   }
 
-  const hasData = totalTransactions > 0 || (metrics?.total_transactions > 0);
+  // View Mode: Mandatory Onboarding Limit Setter
+  if (viewMode === 'onboarding') {
+    return (
+      <ErrorBoundary>
+        <OnboardingLimitModal
+          onComplete={handleOnboardingComplete}
+          initialUser={currentUser}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  // Only consider data present if real transactions have been parsed & ingested
+  const hasData = totalTransactions > 0;
 
   return (
     <ErrorBoundary>
@@ -226,7 +290,7 @@ export default function App() {
         {/* Metric Cards Banner with Framer Motion & CountUp */}
         <MetricCards metrics={metrics} />
 
-        {/* Conditional View: When Empty State, hide charts and show clean Upload Prompt */}
+        {/* Clean "No Data" Empty State: Shown until user ingests real statement files */}
         {!hasData ? (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -251,7 +315,7 @@ export default function App() {
               className="mt-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-2 cursor-pointer transform-gpu active:scale-95"
             >
               <Upload className="w-4 h-4" />
-              <span>Upload Statement CSV</span>
+              <span>Ingest Statement CSV</span>
             </button>
           </motion.div>
         ) : (
