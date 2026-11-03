@@ -212,10 +212,10 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
                 <span>Ingestion Complete & Normalized into 3NF Ledger!</span>
               </div>
               <div className="grid grid-cols-2 gap-2 mt-2.5 font-mono text-[11px] text-slate-300">
-                <div>Total Ingested: <strong className="text-slate-50">{result.total_processed}</strong></div>
-                <div>Anomalies Flagged: <strong className="text-rose-400">{result.anomalies_detected}</strong></div>
-                <div>Normal Spends: <strong className="text-emerald-400">{result.normal_spends}</strong></div>
-                <div>Parsed Spend: <strong className="text-sky-400">₹{result.total_expenditure_parsed?.toFixed(2)}</strong></div>
+                <div>Total Ingested: <strong className="text-slate-50">{result.total_processed ?? result.inserted_count ?? 0}</strong></div>
+                <div>Anomalies Flagged: <strong className="text-rose-400">{result.anomalies_detected ?? result.anomalies_flagged_count ?? 0}</strong></div>
+                <div>Normal Spends: <strong className="text-emerald-400">{result.normal_spends ?? ((result.inserted_count || 0) - (result.anomalies_flagged_count || 0))}</strong></div>
+                <div>Parsed Spend: <strong className="text-sky-400">₹{((result.total_expenditure_parsed ?? result.total_anomaly_spend ?? 0)).toFixed(2)}</strong></div>
               </div>
             </motion.div>
           )}

@@ -56,17 +56,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
       }
     } catch (err) {
       const msg = err.message || '';
-      if (
-        msg.includes('Cannot connect to backend server') ||
-        msg.includes('Failed to fetch') ||
-        msg.includes('502') ||
-        msg.includes('Bad Gateway') ||
-        msg.includes('NetworkError')
-      ) {
-        setError('Cannot connect to backend server. Is FastAPI running?');
-      } else {
-        setError(msg || 'Authentication failed. Please verify credentials.');
-      }
+      setError(msg || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -256,7 +246,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                   <span>Fill Demo Credentials</span>
                 </button>
-                <span className="text-[10px] text-slate-400 font-medium">FastAPI JWT Auth</span>
+                <span className="text-[10px] text-slate-400 font-medium">In-Browser Scholar Auth</span>
               </div>
             )}
 

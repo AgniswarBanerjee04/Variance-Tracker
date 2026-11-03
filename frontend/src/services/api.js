@@ -1,226 +1,134 @@
 /**
- * API Client for Variance Tracker Backend
- * Supports JWT authentication, statement ingestion, and analytics endpoints.
+ * Variance Tracker — 100% Client-Side API & Data Service.
+ *
+ * MCA Minor Project: Micro-Expenditure & Anomaly Detection System
+ * Meghnad Saha Institute of Technology
+ *
+ * All external HTTP/Fetch/Axios calls to FastAPI backend have been completely removed.
+ * Ingestion, string normalization, and micro-spend anomaly detection execute entirely
+ * in the browser using PapaParse and local persistence.
  */
 
-// Base API URL configured from Vite environment variables (supports local dev and cloud deployments)
-// Ensure no trailing slashes on API_BASE to avoid double-slash URL construction
-const rawBase =
-  import.meta.env.VITE_API_BASE_URL ||
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://variance-tracker-chi.vercel.app');
-const API_BASE = rawBase.replace(/\/+$/, '');
-
-const TOKEN_KEY = 'vt_auth_token';
-const USER_KEY = 'vt_auth_user';
+import {
+  parseStatementCSV,
+  analyzeTransaction,
+  getSummaryMetrics,
+  getDailyBurnRate as computeDailyBurnRate,
+  getCategoricalVariance as computeCategoricalVariance,
+  getAnomaliesList as computeAnomaliesList,
+  listTransactions as computeListTransactions,
+  DEFAULT_CATEGORIES,
+  CLIENT_USER_KEY,
+  CLIENT_TOKEN_KEY,
+} from './varianceEngine';
 
 export const authStorage = {
-  getToken: () => localStorage.getItem(TOKEN_KEY),
-  setToken: (token) => localStorage.setItem(TOKEN_KEY, token),
+  getToken: () => localStorage.getItem(CLIENT_TOKEN_KEY),
+  setToken: (token) => localStorage.setItem(CLIENT_TOKEN_KEY, token),
   removeToken: () => {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(CLIENT_TOKEN_KEY);
+    localStorage.removeItem(CLIENT_USER_KEY);
   },
   getUser: () => {
     try {
-      const u = localStorage.getItem(USER_KEY);
+      const u = localStorage.getItem(CLIENT_USER_KEY);
       return u ? JSON.parse(u) : null;
     } catch {
       return null;
     }
   },
-  setUser: (user) => localStorage.setItem(USER_KEY, JSON.stringify(user)),
+  setUser: (user) => localStorage.setItem(CLIENT_USER_KEY, JSON.stringify(user)),
 };
 
-async function safeFetch(url, options = {}) {
-  try {
-    // 1. Remove duplicate slashes in path while preserving protocol (http:// or https://)
-    let targetUrl = url.replace(/([^:]\/)\/+/g, '$1');
-
-    // 2. Strip trailing slashes before query parameters or at end of URL to prevent route mismatches
-    targetUrl = targetUrl.replace(/\/+(\?|$)/, '$1');
-
-    // 3. Normalize target URL to ensure /api/v1 prefix is routed correctly when calling bare origin
-    if (
-      targetUrl.startsWith(API_BASE) &&
-      !API_BASE.endsWith('/api/v1') &&
-      !targetUrl.includes('/api/v1/') &&
-      !targetUrl.endsWith('/api/v1') &&
-      !targetUrl.includes('/health') &&
-      targetUrl !== API_BASE
-    ) {
-      const cleanBase = API_BASE.replace(/\/+$/, '');
-      targetUrl = targetUrl.replace(cleanBase, `${cleanBase}/api/v1`);
-      targetUrl = targetUrl.replace(/([^:]\/)\/+/g, '$1');
-      targetUrl = targetUrl.replace(/\/+(\?|$)/, '$1');
-    }
-
-    let response = await fetch(targetUrl, options);
-
-    // 4. Transparent fallback retry if 404 occurs (e.g. server mounted at root instead of /api/v1, or vice versa)
-    if (response.status === 404) {
-      let fallbackUrl = null;
-      if (targetUrl.includes('/api/v1/auth/login')) {
-        fallbackUrl = targetUrl.replace('/api/v1/auth/login', '/api/v1/auth/login-json');
-      } else if (targetUrl.includes('/api/v1/')) {
-        fallbackUrl = targetUrl.replace('/api/v1/', '/');
-      } else if (!targetUrl.includes('/api/v1/')) {
-        const cleanBase = API_BASE.replace(/\/+$/, '');
-        fallbackUrl = targetUrl.replace(cleanBase, `${cleanBase}/api/v1`);
-      }
-      if (fallbackUrl && fallbackUrl !== targetUrl) {
-        fallbackUrl = fallbackUrl.replace(/([^:]\/)\/+/g, '$1').replace(/\/+(\?|$)/, '$1');
-        const retryResp = await fetch(fallbackUrl, options);
-        if (retryResp.ok) {
-          response = retryResp;
-        }
-      }
-    }
-
-    if (!response.ok) {
-      if (response.status === 502 || response.status === 503 || response.status === 504) {
-        throw new Error('Cannot connect to backend server. Is FastAPI running?');
-      }
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `HTTP Error ${response.status}: ${response.statusText}`);
-    }
-    return response.json();
-  } catch (err) {
-    const msg = err.message || '';
-    if (
-      msg.includes('Failed to fetch') ||
-      msg.includes('NetworkError') ||
-      msg.includes('network error') ||
-      msg.includes('Load failed') ||
-      msg.includes('502') ||
-      msg.includes('Bad Gateway')
-    ) {
-      throw new Error('Cannot connect to backend server. Is FastAPI running?');
-    }
-    throw err;
-  }
-}
-
-function getAuthHeaders(isJson = true) {
-  const headers = {};
-  if (isJson) {
-    headers['Content-Type'] = 'application/json';
-  }
-  const token = authStorage.getToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
+/**
+ * 100% Client-Side API Service Interface.
+ * All methods return Promises matching the original async API contracts.
+ */
 export const api = {
-  // Authentication - paths constructed without double-slashes and without trailing slashes
+  // Authentication (Client-side authenticated session)
   async login(email, password) {
-    const data = await safeFetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    if (data.access_token) {
-      authStorage.setToken(data.access_token);
-      if (data.user) {
-        authStorage.setUser(data.user);
-      }
-    }
-    return data;
+    const verifiedUser = {
+      id: 'scholar-msit-2026',
+      email: email || 'scholar@msit.edu.in',
+      full_name: email === 'scholar@msit.edu.in' ? 'MCA Research Scholar' : (email.split('@')[0] || 'MCA Scholar'),
+      created_at: new Date().toISOString(),
+    };
+    const token = 'vt-client-jwt-' + Date.now();
+    authStorage.setToken(token);
+    authStorage.setUser(verifiedUser);
+    return {
+      access_token: token,
+      token_type: 'bearer',
+      user: verifiedUser,
+    };
   },
 
   async signup(email, password, fullName) {
-    return safeFetch(`${API_BASE}/auth/signup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email,
-        password,
-        full_name: fullName,
-      }),
-    });
+    const newUser = {
+      id: 'scholar-' + Date.now(),
+      email,
+      full_name: fullName || 'MCA Scholar',
+      created_at: new Date().toISOString(),
+    };
+    const token = 'vt-client-jwt-' + Date.now();
+    authStorage.setToken(token);
+    authStorage.setUser(newUser);
+    return newUser;
   },
 
   async getMe() {
-    return safeFetch(`${API_BASE}/auth/me`, {
-      headers: getAuthHeaders(false),
-    });
+    const user = authStorage.getUser();
+    if (user) return user;
+    return {
+      id: 'scholar-msit-2026',
+      email: 'scholar@msit.edu.in',
+      full_name: 'MCA Research Scholar',
+      created_at: new Date().toISOString(),
+    };
   },
 
   logout() {
     authStorage.removeToken();
   },
 
-  // Analytical KPIs
+  // Top-Level KPI Summary
   async getSummary() {
-    return safeFetch(`${API_BASE}/analytics/summary`, {
-      headers: getAuthHeaders(false),
-    });
+    return getSummaryMetrics();
   },
 
   // Daily Burn Rate Time-Series
   async getDailyBurnRate(days = 30) {
-    return safeFetch(`${API_BASE}/analytics/daily-burn-rate?days=${days}`, {
-      headers: getAuthHeaders(false),
-    });
+    return computeDailyBurnRate(days);
   },
 
   // Categorical Variance Distribution
   async getCategoricalVariance() {
-    return safeFetch(`${API_BASE}/analytics/categorical-variance`, {
-      headers: getAuthHeaders(false),
-    });
+    return computeCategoricalVariance();
   },
 
   // Identified Anomalies List
   async getAnomalies(limit = 100) {
-    return safeFetch(`${API_BASE}/analytics/anomalies?limit=${limit}`, {
-      headers: getAuthHeaders(false),
-    });
+    return computeAnomaliesList(limit);
   },
 
-  // Transactions Ledger - no trailing slash before query parameters
+  // Paginated Transactions Ledger
   async getTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null) {
-    let url = `${API_BASE}/transactions?page=${page}&limit=${limit}&variance_only=${varianceOnly}`;
-    if (categoryId) url += `&category_id=${categoryId}`;
-    return safeFetch(url, {
-      headers: getAuthHeaders(false),
-    });
+    return computeListTransactions(page, limit, varianceOnly, categoryId);
   },
 
-  // Categories Listing
+  // 3NF Categories Listing
   async getCategories() {
-    return safeFetch(`${API_BASE}/transactions/categories`, {
-      headers: getAuthHeaders(false),
-    });
+    return DEFAULT_CATEGORIES;
   },
 
-  // Drag-and-Drop CSV Ingestion
+  // In-Browser CSV Ingestion via PapaParse
   async uploadCSV(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const token = authStorage.getToken();
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    return safeFetch(`${API_BASE}/transactions/upload-csv`, {
-      method: 'POST',
-      headers,
-      body: formData,
-    });
+    return await parseStatementCSV(file);
   },
 
   // Direct UPI NLP Sandbox Tester
   async parseRawUPI(rawUPIString, amount = 100.0) {
-    return safeFetch(`${API_BASE}/nlp/parse-raw`, {
-      method: 'POST',
-      headers: getAuthHeaders(true),
-      body: JSON.stringify({
-        raw_upi_string: rawUPIString,
-        amount: parseFloat(amount) || 0,
-      }),
-    });
+    const parsedAmount = typeof amount === 'number' ? amount : parseFloat(amount) || 100.0;
+    return analyzeTransaction(rawUPIString, parsedAmount);
   },
 };

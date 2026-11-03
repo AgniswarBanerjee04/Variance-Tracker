@@ -201,7 +201,7 @@ export default function App() {
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/[0.06] bg-[#07090E]/80 py-4 text-center text-xs text-slate-400 font-medium backdrop-blur-md">
         <p>
-          FastAPI Backend &bull; Async PostgreSQL (3NF) &bull; React & Tailwind &bull; Framer Motion &bull; Recharts &bull; NLP Anomaly Model
+          Client-Side Engine &bull; In-Browser 3NF Ledger &bull; React & Tailwind &bull; Framer Motion &bull; Recharts &bull; NLP Anomaly Model
         </p>
       </footer>
 

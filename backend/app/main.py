@@ -77,11 +77,32 @@ app.include_router(transactions_router, prefix=api_prefix)
 app.include_router(analytics_router, prefix=api_prefix)
 app.include_router(nlp_router, prefix=api_prefix)
 
+# Mount with /api prefix for Vercel Serverless Functions where request path retains /api
+app.include_router(auth_router, prefix="/api")
+app.include_router(transactions_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
+app.include_router(nlp_router, prefix="/api")
+
 # Fallback root mounting for direct base URL routing
 app.include_router(auth_router)
 app.include_router(transactions_router)
 app.include_router(analytics_router)
 app.include_router(nlp_router)
+
+from fastapi import Response
+
+@app.options("/{full_path:path}", tags=["System"])
+async def preflight_options_handler(full_path: str):
+    """Explicit preflight handler for CORS OPTIONS requests across all routes."""
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true",
+        },
+    )
 
 # Direct root aliases for authentication endpoints (e.g. /login, /signup, /me)
 from app.routers.auth import login as auth_login, register as auth_register, get_profile as auth_me
