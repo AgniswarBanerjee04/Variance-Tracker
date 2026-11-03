@@ -1,0 +1,12 @@
+{
+  "name": "variance-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Variance Tracker - Micro-Expenditure & Anomaly Detection System (MCA Minor Project)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build && node -e \"const fs=require('fs'); fs.cpSync('frontend/dist', 'dist', {recursive: true});\"",
+    "preview": "npm --prefix frontend run preview",
+    "lint": "npm --prefix frontend run lint"
+  }
+}

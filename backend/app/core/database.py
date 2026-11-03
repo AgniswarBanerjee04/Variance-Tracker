@@ -7,6 +7,7 @@ Adheres to strict separation of concerns for database transactions.
 """
 
 import os
+from pathlib import Path
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -15,12 +16,10 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 
-# Strictly fetch cloud database URL via os.getenv("DATABASE_URL")
-DATABASE_URL = os.getenv("DATABASE_URL")
+from app.core.config import settings
 
-if not DATABASE_URL:
-    # Default cloud PostgreSQL fallback when environment variable is unset locally
-    DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/variance_tracker"
+# Fetch database URL from environment or fallback to application settings
+DATABASE_URL = os.getenv("DATABASE_URL") or settings.DATABASE_URL
 
 # Normalize PostgreSQL driver for SQLAlchemy asyncpg engine if needed
 # (Cloud providers such as Neon, Supabase, Render, Railway often supply postgres:// or postgresql://)
@@ -29,14 +28,28 @@ if DATABASE_URL.startswith("postgres://"):
 elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+asyncpg://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-# PostgreSQL asyncpg connection pool tuning for cloud deployments
+# Canonical path resolution for local SQLite development
+if DATABASE_URL.startswith("sqlite+aiosqlite:///"):
+    sqlite_path_str = DATABASE_URL.replace("sqlite+aiosqlite:///", "", 1)
+    if not os.path.isabs(sqlite_path_str):
+        # Resolve relative SQLite path to the backend directory
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        db_file = (backend_dir / sqlite_path_str.lstrip("./\\")).resolve()
+        DATABASE_URL = f"sqlite+aiosqlite:///{db_file.as_posix()}"
+
+# Connection engine arguments
 engine_kwargs = {
     "echo": False,
     "future": True,
-    "pool_size": 10,
-    "max_overflow": 20,
-    "pool_pre_ping": True,
 }
+
+# Apply connection pool settings for PostgreSQL
+if not DATABASE_URL.startswith("sqlite"):
+    engine_kwargs.update({
+        "pool_size": 10,
+        "max_overflow": 20,
+        "pool_pre_ping": True,
+    })
 
 engine = create_async_engine(DATABASE_URL, **engine_kwargs)
 

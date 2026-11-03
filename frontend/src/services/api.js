@@ -3,9 +3,12 @@
  * Supports JWT authentication, statement ingestion, and analytics endpoints.
  */
 
-// Base API URL strictly configured from Vite environment variable with safe fallback for Vercel
+// Base API URL configured from Vite environment variables (supports local dev and cloud deployments)
 // Ensure no trailing slashes on API_BASE to avoid double-slash URL construction
-const rawBase = import.meta.env.VITE_API_BASE_URL || 'https://variance-tracker-chi.vercel.app';
+const rawBase =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8000' : 'https://variance-tracker-chi.vercel.app');
 const API_BASE = rawBase.replace(/\/+$/, '');
 
 const TOKEN_KEY = 'vt_auth_token';

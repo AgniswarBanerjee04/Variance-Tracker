@@ -18,8 +18,8 @@ class NLPTransactionResult(BaseModel):
 
 class RawUPIParseRequest(BaseModel):
     """Payload to parse an arbitrary UPI string directly."""
-    raw_upi_string: str = Field(..., example="UPI/40123/PAYTM*QR_Tea/HDFC")
-    amount: Optional[float] = Field(default=None, example=45.0)
+    raw_upi_string: str = Field(..., json_schema_extra={"example": "UPI/40123/PAYTM*QR_Tea/HDFC"})
+    amount: Optional[float] = Field(default=None, json_schema_extra={"example": 45.0})
 
 
 class TransactionBase(BaseModel):

@@ -63,7 +63,8 @@ at Meghnad Saha Institute of Technology.
 # Note: When allow_credentials=True, origins cannot use "*" wildcard per CORS specification.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://variance-tracker-x56m.vercel.app", "http://localhost:5173"],
+    allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
