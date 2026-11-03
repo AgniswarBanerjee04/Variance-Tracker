@@ -4,8 +4,8 @@
  * MCA Minor Project: Micro-Expenditure & Anomaly Detection System
  * Meghnad Saha Institute of Technology
  *
- * Completely replaces external FastAPI backend dependencies with 100% client-side
- * execution in the browser using PapaParse and Web Storage.
+ * Supports multi-file batch upload, PapaParse concurrent parsing (Promise.all),
+ * automated cross-file entity deduplication, and consolidated vendor analytics.
  */
 
 import Papa from 'papaparse';
@@ -23,21 +23,21 @@ export const DEFAULT_CATEGORIES = [
   {
     id: 1,
     name: 'Food/Beverage',
-    description: 'Dining, street food, tea/coffee, fast food, quick groceries',
+    description: 'Dining, street food, tea/coffee, fast food, quick groceries, snacks',
     default_threshold: 500.0,
     is_essential: false,
   },
   {
     id: 2,
     name: 'Transit',
-    description: 'Cab, auto, metro, rail, fuel, FASTag tolls',
+    description: 'Cab, auto, metro, rail, bus, fuel, FASTag tolls',
     default_threshold: 500.0,
     is_essential: true,
   },
   {
     id: 3,
     name: 'Utility',
-    description: 'Electricity, mobile recharge, gas, broadband',
+    description: 'Electricity, mobile recharge, gas, broadband, rent',
     default_threshold: 1000.0,
     is_essential: true,
   },
@@ -51,14 +51,14 @@ export const DEFAULT_CATEGORIES = [
   {
     id: 5,
     name: 'Retail',
-    description: 'Shopping, clothing, general merchandise',
+    description: 'Shopping, stationery, clothing, general merchandise',
     default_threshold: 1000.0,
     is_essential: false,
   },
   {
     id: 6,
     name: 'Miscellaneous',
-    description: 'Unclassified personal transactions',
+    description: 'Unclassified personal transactions and cash withdrawals',
     default_threshold: 500.0,
     is_essential: false,
   },
@@ -66,12 +66,15 @@ export const DEFAULT_CATEGORIES = [
 
 export const NON_ESSENTIAL_CATEGORIES = new Set(['Food/Beverage', 'Retail', 'Subscription']);
 
-// Standardized Merchant & Category Mapping Heuristics (Ported from nlp_service.py)
+// Standardized Merchant & Category Mapping Heuristics
 export const KNOWN_MERCHANT_PATTERNS = [
   // Food & Beverage
   [/(swiggy|bundl\s*tech)/i, 'Swiggy', 'Food/Beverage'],
   [/(zomato)/i, 'Zomato', 'Food/Beverage'],
   [/(chai\s*point|chaayos|tea|chai|tapri)/i, 'Local Tea/Chai Point', 'Food/Beverage'],
+  [/(pan\s*shop|paan|cigarette|cigar)/i, 'Local Kiosk/Pan Shop', 'Food/Beverage'],
+  [/(snack|samosa|canteen|bakery|mithai|sweets)/i, 'Snacks & Bakery Corner', 'Food/Beverage'],
+  [/(dairy|milk|amul|mother\s*dairy)/i, 'Local Dairy/Milk Store', 'Food/Beverage'],
   [/(starbucks|tata\s*starbucks)/i, 'Starbucks', 'Food/Beverage'],
   [/(ccd|cafe\s*coffee\s*day)/i, 'Cafe Coffee Day', 'Food/Beverage'],
   [/(mcdonalds|hardcastle|burger\s*king|kfc|dominos|pizza\s*hut)/i, 'Fast Food QSR', 'Food/Beverage'],
@@ -81,6 +84,8 @@ export const KNOWN_MERCHANT_PATTERNS = [
   [/(uber|ubr)/i, 'Uber', 'Transit'],
   [/(ola|ani\s*technologies)/i, 'Ola Cabs', 'Transit'],
   [/(rapido|roppen)/i, 'Rapido', 'Transit'],
+  [/(auto|rickshaw|cab|taxi)/i, 'Local Auto/Cab Fare', 'Transit'],
+  [/(bus|transport)/i, 'City Bus Transit', 'Transit'],
   [/(irctc|indian\s*rail)/i, 'IRCTC Railway', 'Transit'],
   [/(metro|dmrc|bmrc|kmrc)/i, 'Metro Transit', 'Transit'],
   [/(indian\s*oil|bharat\s*petrol|hpcl|bpcl|shell|fuel|petrol)/i, 'Fuel Station', 'Transit'],
@@ -100,15 +105,45 @@ export const KNOWN_MERCHANT_PATTERNS = [
   [/(vodafone|idea|vi)/i, 'Vodafone Idea', 'Utility'],
   [/(electricity|power|bescom|tneb|cesc|wbsedcl)/i, 'Electricity Utility', 'Utility'],
   [/(gas|indane|bharat\s*gas|hp\s*gas)/i, 'LPG Gas Utility', 'Utility'],
+  [/(rent|landlord|maintenance)/i, 'House Rent', 'Utility'],
 
   // Retail & E-Commerce
+  [/(stationery|book|pen|xerox|print)/i, 'Stationery & Printing', 'Retail'],
   [/(amzn|amazon)/i, 'Amazon Retail', 'Retail'],
   [/(flipkart)/i, 'Flipkart', 'Retail'],
   [/(myntra)/i, 'Myntra', 'Retail'],
   [/(dmart|avenue\s*supermarts)/i, 'DMart', 'Retail'],
   [/(reliance\s*retail|reliance\s*fresh|smart\s*point)/i, 'Reliance Retail', 'Retail'],
   [/(nykaa|purplle|meesho|ajio)/i, 'Apparel/Cosmetics Retail', 'Retail'],
+
+  // Miscellaneous
+  [/(atm|cash\s*wdl|cash\s*withdrawal)/i, 'ATM Cash Withdrawal', 'Miscellaneous'],
 ];
+
+/**
+ * Flexible Date Parser supporting Indian bank formats (DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, etc.)
+ */
+export function parseFlexibleDate(dateStr) {
+  if (!dateStr) return new Date().toISOString();
+  const trimmed = String(dateStr).trim();
+
+  // Match DD-MM-YYYY or DD/MM/YYYY with optional HH:MM(:SS)
+  const dmyMatch = trimmed.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const month = parseInt(dmyMatch[2], 10) - 1;
+    const year = parseInt(dmyMatch[3], 10);
+    const hour = parseInt(dmyMatch[4] || 0, 10);
+    const min = parseInt(dmyMatch[5] || 0, 10);
+    const sec = parseInt(dmyMatch[6] || 0, 10);
+    const d = new Date(Date.UTC(year, month, day, hour, min, sec));
+    if (!isNaN(d.getTime())) return d.toISOString();
+  }
+
+  // Fallback to standard JS ISO date parser
+  const parsed = new Date(trimmed);
+  return !isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+}
 
 /**
  * Deterministic NLP rule engine for parsing unstructured Indian UPI statements.
@@ -185,6 +220,14 @@ export function saveStoredTransactions(txs) {
   }
 }
 
+export function clearStoredTransactions() {
+  try {
+    localStorage.removeItem(CLIENT_TXS_KEY);
+  } catch (err) {
+    console.warn('[Variance Tracker] Storage warning:', err);
+  }
+}
+
 /**
  * Seeds initial demo transactions if localStorage is empty.
  */
@@ -239,6 +282,7 @@ function seedInitialTransactions() {
       variance_flag: nlp.variance_flag,
       anomaly_reason: nlp.reason,
       reference_no: item.ref,
+      source_file: 'seed_statement.csv',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -248,11 +292,32 @@ function seedInitialTransactions() {
 }
 
 /**
- * Parses uploaded CSV bank statements in the browser using PapaParse.
- * Normalizes descriptors, classifies into 3NF categories, flags micro-spend anomalies,
- * updates localStorage, and returns the ingestion summary.
+ * Builds deterministic deduplication lookup keys for a transaction.
+ * Detects identical transactions via Ref_No or composite key (Date + Amount + Narration).
  */
-export async function parseStatementCSV(fileOrBlob) {
+function getDeduplicationKeys(tx) {
+  const keys = [];
+
+  // 1. Unique Reference Number match (if valid and not a generated prefix)
+  const ref = (tx.reference_no || '').trim().toLowerCase();
+  if (ref && !ref.startsWith('auto-') && !ref.startsWith('txn-') && !ref.startsWith('ref-')) {
+    keys.push(`ref:${ref}`);
+  }
+
+  // 2. Composite key: Calendar Day (YYYY-MM-DD) + Normalized Amount + Normalized Description
+  const dateStr = (tx.date || '').slice(0, 10);
+  const amtStr = Number(tx.amount || 0).toFixed(2);
+  const descStr = (tx.raw_description || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  keys.push(`comp:${dateStr}|${amtStr}|${descStr}`);
+
+  return keys;
+}
+
+/**
+ * Parses a single CSV file or Blob in the browser using PapaParse.
+ */
+function parseSingleCSVFile(fileOrBlob) {
   return new Promise((resolve, reject) => {
     Papa.parse(fileOrBlob, {
       header: true,
@@ -261,113 +326,188 @@ export async function parseStatementCSV(fileOrBlob) {
       complete: (results) => {
         try {
           const rows = results.data || [];
-          if (!rows.length) {
-            throw new Error('Uploaded statement CSV contains no readable data rows.');
-          }
-
-          // Case-insensitive header matching
-          const firstRow = rows[0];
-          const keys = Object.keys(firstRow);
-          const dateKey = keys.find((k) => /date|time|timestamp|txn_date/i.test(k));
-          const descKey = keys.find((k) => /desc|particular|merchant|narration|remark|raw/i.test(k));
-          const amtKey = keys.find((k) => /amount|debit|withdrawal|amt|spend|value/i.test(k));
-          const refKey = keys.find((k) => /ref|utr|id|reference|txn_id/i.test(k));
-
-          const resolvedDescKey = descKey || keys[1] || keys[0];
-          const resolvedAmtKey = amtKey || keys[2] || keys[1];
-
-          let totalRows = 0;
-          let inserted = 0;
-          let skipped = 0;
-          let anomalies = 0;
-          let totalAnomalySpend = 0.0;
-          let totalSpend = 0.0;
-          const categoryCounts = {};
-
-          const existingTxs = getStoredTransactions();
-          const newTxs = [];
-
-          rows.forEach((row, idx) => {
-            totalRows++;
-            const rawDesc = String(row[resolvedDescKey] || '').trim();
-            const rawAmt = String(row[resolvedAmtKey] || '').replace(/[₹,]/g, '').trim();
-            const amount = Math.abs(parseFloat(rawAmt));
-
-            if (!rawDesc || isNaN(amount) || amount <= 0) {
-              skipped++;
-              return;
-            }
-
-            const rawDate = dateKey ? row[dateKey] : '';
-            const parsedDate = rawDate ? new Date(rawDate).toISOString() : new Date().toISOString();
-            const refNo = (refKey && row[refKey]) ? String(row[refKey]).trim() : `TXN-${Date.now()}-${idx + 1}`;
-
-            // Execute NLP Normalization & Anomaly Detection
-            const nlp = analyzeTransaction(rawDesc, amount);
-            const catName = nlp.category;
-            categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
-            totalSpend += amount;
-
-            if (nlp.variance_flag) {
-              anomalies++;
-              totalAnomalySpend += amount;
-            }
-
-            const catEntity = DEFAULT_CATEGORIES.find((c) => c.name === catName) || {
-              id: DEFAULT_CATEGORIES.length + 1,
-              name: catName,
-              description: 'Auto-classified transaction category',
-              default_threshold: 500.0,
-              is_essential: !NON_ESSENTIAL_CATEGORIES.has(catName),
-            };
-
-            newTxs.push({
-              id: `tx-${Date.now()}-${idx + 1}`,
-              user_id: 'scholar-demo-user',
-              category_id: catEntity.id,
-              category: catEntity,
-              date: parsedDate,
-              amount: roundTwoDecimals(amount),
-              raw_description: rawDesc,
-              clean_merchant: nlp.clean_merchant,
-              variance_flag: nlp.variance_flag,
-              anomaly_reason: nlp.reason,
-              reference_no: refNo,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-
-            inserted++;
-          });
-
-          // Prepend newly ingested records to existing state
-          const updatedTransactions = [...newTxs, ...existingTxs];
-          saveStoredTransactions(updatedTransactions);
-
-          const summary = {
-            total_rows_processed: totalRows,
-            inserted_count: inserted,
-            skipped_count: skipped,
-            anomalies_flagged_count: anomalies,
-            total_anomaly_spend: roundTwoDecimals(totalAnomalySpend),
-            categories_distribution: categoryCounts,
-            // UI Display Properties for DropZone modal
-            total_processed: inserted,
-            anomalies_detected: anomalies,
-            normal_spends: inserted - anomalies,
-            total_expenditure_parsed: roundTwoDecimals(totalSpend),
-          };
-
-          resolve(summary);
+          const fileName = fileOrBlob.name || 'statement.csv';
+          resolve({ fileName, rows });
         } catch (err) {
           reject(err);
         }
       },
       error: (err) => {
-        reject(new Error(`CSV Parsing Error: ${err.message}`));
+        reject(new Error(`PapaParse error in ${fileOrBlob.name || 'statement'}: ${err.message}`));
       },
     });
   });
+}
+
+/**
+ * Multi-File Batch Processor & Entity Deduplicator.
+ *
+ * 1. Parses multiple statement CSV files concurrently with Promise.all.
+ * 2. Flattens raw statement rows.
+ * 3. Normalizes descriptors and assigns 3NF categories.
+ * 4. Deduplicates identical transactions across files and existing state.
+ * 5. Consolidates common vendors across different statements/months.
+ * 6. Persists the clean master dataset into localStorage.
+ */
+export async function parseBatchCSVStatements(filesArray) {
+  if (!filesArray || !filesArray.length) {
+    throw new Error('No statement files provided for ingestion.');
+  }
+
+  // Step 1: Concurrent PapaParse across all files via Promise.all
+  const parsedFiles = await Promise.all(
+    filesArray.map((file) => parseSingleCSVFile(file))
+  );
+
+  let totalRows = 0;
+  let inserted = 0;
+  let skipped = 0;
+  let duplicatesSkipped = 0;
+  let anomalies = 0;
+  let totalAnomalySpend = 0.0;
+  let totalSpend = 0.0;
+  const categoryCounts = {};
+  const vendorCounts = {};
+
+  // Retrieve existing stored transactions to avoid double-counting on re-upload
+  const existingTransactions = getStoredTransactions();
+  const seenKeys = new Set();
+
+  // Populate seenKeys from existing stored transactions
+  for (const existingTx of existingTransactions) {
+    const keys = getDeduplicationKeys(existingTx);
+    for (const k of keys) {
+      seenKeys.add(k);
+    }
+  }
+
+  const newTransactions = [];
+
+  // Step 2 & 3: Iterate through all parsed files
+  parsedFiles.forEach(({ fileName, rows }, fileIdx) => {
+    if (!rows.length) return;
+
+    // Detect column names case-insensitively
+    const sampleRow = rows[0] || {};
+    const keys = Object.keys(sampleRow);
+    const dateKey = keys.find((k) => /date|time|timestamp|txn_date/i.test(k));
+    const descKey = keys.find((k) => /narration|desc|particular|merchant|remark|raw/i.test(k));
+    const amtKey = keys.find((k) => /withdrawal|debit|spend|amount|amt|value/i.test(k));
+    const refKey = keys.find((k) => /ref_no|ref|utr|id|reference|txn_id/i.test(k));
+
+    const resolvedDescKey = descKey || keys[1] || keys[0];
+    const resolvedAmtKey = amtKey || keys[2] || keys[1];
+
+    rows.forEach((row, rowIdx) => {
+      totalRows++;
+      const rawDesc = String(row[resolvedDescKey] || '').trim();
+      const rawAmt = String(row[resolvedAmtKey] || '').replace(/[₹,]/g, '').trim();
+      const amount = Math.abs(parseFloat(rawAmt));
+
+      if (!rawDesc || isNaN(amount) || amount <= 0) {
+        skipped++;
+        return;
+      }
+
+      const rawDate = dateKey ? row[dateKey] : '';
+      const parsedDate = parseFlexibleDate(rawDate);
+      const refNo = (refKey && row[refKey]) ? String(row[refKey]).trim() : `AUTO-${Date.now()}-${fileIdx}-${rowIdx}`;
+
+      // Normalize via NLP classification
+      const nlp = analyzeTransaction(rawDesc, amount);
+      const catName = nlp.category;
+      const vendorName = nlp.clean_merchant;
+
+      // Construct candidate transaction
+      const candidateTx = {
+        id: `tx-${Date.now()}-${fileIdx}-${rowIdx}`,
+        user_id: 'scholar-demo-user',
+        date: parsedDate,
+        amount: roundTwoDecimals(amount),
+        raw_description: rawDesc,
+        clean_merchant: vendorName,
+        variance_flag: nlp.variance_flag,
+        anomaly_reason: nlp.reason,
+        reference_no: refNo,
+        source_file: fileName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Step 4: Deduplication Check
+      const dedupeKeys = getDeduplicationKeys(candidateTx);
+      const isDuplicate = dedupeKeys.some((k) => seenKeys.has(k));
+
+      if (isDuplicate) {
+        duplicatesSkipped++;
+        return;
+      }
+
+      // Mark keys as seen
+      for (const k of dedupeKeys) {
+        seenKeys.add(k);
+      }
+
+      // Link 3NF category
+      const catEntity = DEFAULT_CATEGORIES.find((c) => c.name === catName) || {
+        id: DEFAULT_CATEGORIES.length + 1,
+        name: catName,
+        description: 'Auto-classified transaction category',
+        default_threshold: 500.0,
+        is_essential: !NON_ESSENTIAL_CATEGORIES.has(catName),
+      };
+      candidateTx.category_id = catEntity.id;
+      candidateTx.category = catEntity;
+
+      // Aggregate consolidated analytics
+      categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+      vendorCounts[vendorName] = (vendorCounts[vendorName] || 0) + 1;
+      totalSpend += amount;
+
+      if (nlp.variance_flag) {
+        anomalies++;
+        totalAnomalySpend += amount;
+      }
+
+      newTransactions.push(candidateTx);
+      inserted++;
+    });
+  });
+
+  // Step 5: Merge deduplicated transactions with master dataset
+  const mergedDataset = [...newTransactions, ...existingTransactions];
+  saveStoredTransactions(mergedDataset);
+
+  // Consolidated top vendors
+  const topVendors = Object.entries(vendorCounts)
+    .map(([vendor, count]) => ({ vendor, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  return {
+    total_files_processed: filesArray.length,
+    total_rows_processed: totalRows,
+    inserted_count: inserted,
+    skipped_count: skipped,
+    duplicates_skipped_count: duplicatesSkipped,
+    anomalies_flagged_count: anomalies,
+    total_anomaly_spend: roundTwoDecimals(totalAnomalySpend),
+    categories_distribution: categoryCounts,
+    top_vendors_consolidated: topVendors,
+    // DropZone feedback metrics
+    total_processed: inserted,
+    anomalies_detected: anomalies,
+    normal_spends: inserted - anomalies,
+    total_expenditure_parsed: roundTwoDecimals(totalSpend),
+  };
+}
+
+/**
+ * Backward compatibility alias for single file or batch array.
+ */
+export async function parseStatementCSV(fileOrFiles) {
+  const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+  return parseBatchCSVStatements(files);
 }
 
 function roundTwoDecimals(num) {
@@ -511,6 +651,7 @@ export function getAnomaliesList(limit = 100) {
     category: t.category?.name || 'Unclassified',
     raw_description: t.raw_description,
     reason: t.anomaly_reason || 'Recurring micro-expenditure anomaly under Rs. 500.',
+    source_file: t.source_file,
   }));
 
   return {
