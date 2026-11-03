@@ -49,10 +49,14 @@ export const authStorage = {
 export const api = {
   // Authentication (Client-side authenticated session)
   async login(email, password) {
+    const rawEmail = (email || '').trim();
+    const fallbackUsername = rawEmail.includes('@') ? rawEmail.split('@')[0] : (rawEmail || 'User');
     const verifiedUser = {
-      id: 'user-profile-2026',
-      email: email || 'user@example.com',
-      full_name: 'User Profile',
+      id: 'user-' + Date.now(),
+      email: rawEmail || 'user@example.com',
+      displayName: fallbackUsername,
+      name: fallbackUsername,
+      full_name: fallbackUsername,
       created_at: new Date().toISOString(),
     };
     const token = 'vt-client-jwt-' + Date.now();
@@ -66,10 +70,15 @@ export const api = {
   },
 
   async signup(email, password, fullName) {
+    const rawEmail = (email || '').trim();
+    const emailFallback = rawEmail.includes('@') ? rawEmail.split('@')[0] : 'User';
+    const chosenName = (fullName && fullName.trim()) ? fullName.trim() : emailFallback;
     const newUser = {
       id: 'user-' + Date.now(),
-      email: email || 'user@example.com',
-      full_name: fullName || 'User Profile',
+      email: rawEmail || 'user@example.com',
+      displayName: chosenName,
+      name: chosenName,
+      full_name: chosenName,
       created_at: new Date().toISOString(),
     };
     const token = 'vt-client-jwt-' + Date.now();
@@ -84,7 +93,9 @@ export const api = {
     return {
       id: 'user-profile-2026',
       email: 'user@example.com',
-      full_name: 'User Profile',
+      displayName: 'User',
+      name: 'User',
+      full_name: 'User',
       created_at: new Date().toISOString(),
     };
   },

@@ -12,6 +12,30 @@ function NavbarBase({
   onOpenAuth,
   onLogout,
 }) {
+  // Dynamically retrieve username from authentication context / session state
+  // Fallback: If auth only returns an email address, extract the string before '@'
+  const dynamicUsername = React.useMemo(() => {
+    if (!currentUser) return 'User';
+    const rawName =
+      currentUser.displayName ||
+      currentUser.name ||
+      currentUser.full_name ||
+      currentUser.username;
+
+    if (rawName && typeof rawName === 'string' && rawName.trim() && rawName.trim() !== 'User Profile') {
+      return rawName.trim();
+    }
+
+    const email = currentUser.email;
+    if (email && typeof email === 'string' && email.includes('@')) {
+      const extracted = email.split('@')[0];
+      if (extracted && extracted.trim()) {
+        return extracted.trim();
+      }
+    }
+
+    return rawName || email || 'User';
+  }, [currentUser]);
   return (
     <header className="sticky top-0 z-40 bg-[#07090E]/80 backdrop-blur-md border-b border-white/[0.06] shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] transform-gpu will-change-transform">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -86,7 +110,7 @@ function NavbarBase({
                 >
                   <User className="w-3.5 h-3.5 text-indigo-400" />
                   <span className="hidden lg:inline font-medium">
-                    User Profile
+                    {dynamicUsername}
                   </span>
                 </div>
                 <button

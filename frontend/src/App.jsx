@@ -135,11 +135,12 @@ export default function App() {
     }
   }, [page, varianceOnly, selectedCategory]);
 
+  // Re-fetch transactions only when page/filters change AND real statement data exists
   useEffect(() => {
-    if (viewMode === 'dashboard') {
+    if (totalTransactions > 0) {
       loadDashboardData();
     }
-  }, [viewMode, loadDashboardData]);
+  }, [page, varianceOnly, selectedCategory, totalTransactions, loadDashboardData]);
 
   // Synchronize dashboard, check budget limits, and auto-close modal on upload success
   const handleUploadSuccess = useCallback(async (summary) => {
@@ -172,18 +173,16 @@ export default function App() {
 
   const handleCloseUploadModal = useCallback(() => {
     setIsUploadOpen(false);
-    loadDashboardData();
-  }, [loadDashboardData]);
+  }, []);
 
   // Transition from Auth: Enforce onboarding if no limit exists
   const handleAuthSuccess = (user) => {
-    const verifiedUser = user || authStorage.getUser() || { full_name: 'User Profile' };
+    const verifiedUser = user || authStorage.getUser() || { full_name: 'User' };
     setCurrentUser(verifiedUser);
     if (!api.hasSavedMiscSpendLimit()) {
       setViewMode('onboarding');
     } else {
       setViewMode('dashboard');
-      loadDashboardData();
     }
   };
 
@@ -191,7 +190,6 @@ export default function App() {
   const handleOnboardingComplete = (savedLimit) => {
     setMiscLimit(savedLimit);
     setViewMode('dashboard');
-    loadDashboardData();
   };
 
   const handleLogout = () => {
@@ -231,7 +229,7 @@ export default function App() {
   }
 
   // Only consider data present if real transactions have been parsed & ingested
-  const hasData = totalTransactions > 0;
+  const hasData = Array.isArray(transactions) && transactions.length > 0;
 
   return (
     <ErrorBoundary>
@@ -287,9 +285,6 @@ export default function App() {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 transform-gpu">
         
-        {/* Metric Cards Banner with Framer Motion & CountUp */}
-        <MetricCards metrics={metrics} />
-
         {/* Clean "No Data" Empty State: Shown until user ingests real statement files */}
         {!hasData ? (
           <motion.div
@@ -306,7 +301,7 @@ export default function App() {
                 No Statement Ingested Yet
               </h3>
               <p className="text-sm text-slate-400 font-medium">
-                Upload a CSV to view your analytics.
+                Please Ingest a CSV to view analytics
               </p>
             </div>
             <button
@@ -320,6 +315,9 @@ export default function App() {
           </motion.div>
         ) : (
           <>
+            {/* Metric Cards Banner with Framer Motion & CountUp */}
+            <MetricCards metrics={metrics} />
+
             {/* 2-Column Grid: Daily Burn Rate & Categorical Variance Heatmap */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <DailyBurnRatePanel
