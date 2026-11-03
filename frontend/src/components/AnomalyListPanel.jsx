@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CountUp from './CountUp';
-import { AlertTriangle, Search, Filter, Calendar, Tag, Info } from 'lucide-react';
+import { AlertTriangle, Search, Filter, Calendar, Tag, Info, Eye, EyeOff, Lock } from 'lucide-react';
 
-// Memoized individual anomaly row component to eliminate re-rendering when typing in search or switching tabs
+// Memoized individual anomaly row component with privacy protection
 const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
+  const [isRevealed, setIsRevealed] = useState(false);
   const amountNum = Number(item?.amount || 0);
   const dateStr = item?.date ? String(item.date).slice(0, 10) : 'N/A';
   const merchantStr = item?.clean_merchant || 'Micro-Transaction';
@@ -24,9 +25,16 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-bold text-slate-50 text-xs truncate">
-              {merchantStr}
-            </span>
+            {isRevealed ? (
+              <span className="font-bold text-slate-50 text-xs truncate">
+                {merchantStr}
+              </span>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-slate-500 font-mono text-[11px] select-none">
+                <Lock className="w-2.5 h-2.5 text-slate-500" />
+                <span>••••••••••</span>
+              </div>
+            )}
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-300 border border-white/[0.08] flex items-center gap-1 font-sans">
               <Tag className="w-2.5 h-2.5 text-sky-400" />
               {catStr}
@@ -36,9 +44,15 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
               {dateStr}
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
-            {item?.raw_description || ''}
-          </p>
+          {isRevealed ? (
+            <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+              {item?.raw_description || ''}
+            </p>
+          ) : (
+            <p className="text-[10px] text-slate-500 font-sans italic mt-0.5">
+              Vendor and narration hidden by privacy shield
+            </p>
+          )}
           <p className="text-[11px] text-rose-300 font-medium mt-1 flex items-center gap-1">
             <Info className="w-3 h-3 text-rose-400 shrink-0" />
             <span>{reasonStr}</span>
@@ -46,10 +60,25 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
         </div>
       </div>
 
-      <div className="text-right shrink-0 self-end sm:self-auto font-mono">
-        <span className="text-sm font-bold text-rose-400 block">
-          -₹{amountNum.toFixed(2)}
-        </span>
+      <div className="text-right shrink-0 self-end sm:self-auto font-mono flex flex-col items-end gap-1.5">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-rose-400">
+            -₹{amountNum.toFixed(2)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setIsRevealed((prev) => !prev)}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border transition-all cursor-pointer ${
+              isRevealed
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                : 'bg-sky-500/10 text-sky-400 border-sky-500/30 hover:bg-sky-500/20'
+            }`}
+            title={isRevealed ? 'Hide vendor' : 'View vendor'}
+          >
+            {isRevealed ? <EyeOff className="w-3 h-3 text-amber-400" /> : <Eye className="w-3 h-3 text-sky-400" />}
+            <span>{isRevealed ? 'Hide' : 'View'}</span>
+          </button>
+        </div>
         <span className="text-[10px] text-slate-400 font-medium font-sans">
           Micro-Spend Leak
         </span>

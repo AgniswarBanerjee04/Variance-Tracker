@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import MetricCards from './components/MetricCards';
 import DailyBurnRatePanel from './components/DailyBurnRatePanel';
@@ -11,7 +11,7 @@ import NLPSandboxModal from './components/NLPSandboxModal';
 import AuthPage from './components/AuthPage';
 import ErrorBoundary from './components/ErrorBoundary';
 import { api, authStorage } from './services/api';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, CheckCircle2, X } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
@@ -19,8 +19,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isSandboxOpen, setIsSandboxOpen] = useState(false);
-
-
+  const [toastMessage, setToastMessage] = useState(null);
 
   // Analytics states
   const [metrics, setMetrics] = useState(null);
@@ -54,9 +53,13 @@ export default function App() {
   }, []);
 
   // Fetch all dashboard data
-  const loadDashboardData = useCallback(async () => {
+  const loadDashboardData = useCallback(async (forcedPage, forcedVariance, forcedCat) => {
     setLoading(true);
     try {
+      const targetPage = forcedPage !== undefined ? forcedPage : page;
+      const targetVariance = forcedVariance !== undefined ? forcedVariance : varianceOnly;
+      const targetCat = forcedCat !== undefined ? forcedCat : selectedCategory;
+
       const [
         summaryRes,
         burnRes,
@@ -69,19 +72,19 @@ export default function App() {
         api.getDailyBurnRate(30).catch(() => null),
         api.getCategoricalVariance().catch(() => null),
         api.getAnomalies(50).catch(() => null),
-        api.getTransactions(page, 20, varianceOnly, selectedCategory).catch(() => ({ items: [], total: 0 })),
+        api.getTransactions(targetPage, 20, targetVariance, targetCat).catch(() => ({ items: [], total: 0 })),
         api.getCategories().catch(() => []),
       ]);
 
-      if (summaryRes) setMetrics(summaryRes);
-      if (burnRes) setBurnRateData(burnRes);
-      if (catRes) setCategoricalData(catRes);
-      if (anomRes) setAnomaliesData(anomRes);
+      if (summaryRes) setMetrics({ ...summaryRes });
+      if (burnRes) setBurnRateData({ ...burnRes });
+      if (catRes) setCategoricalData({ ...catRes });
+      if (anomRes) setAnomaliesData({ ...anomRes });
       if (txsRes) {
-        setTransactions(txsRes.items || []);
+        setTransactions([...(txsRes.items || [])]);
         setTotalTransactions(txsRes.total || 0);
       }
-      if (catsRes) setCategories(catsRes);
+      if (catsRes) setCategories([...catsRes]);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -94,6 +97,31 @@ export default function App() {
       loadDashboardData();
     }
   }, [viewMode, loadDashboardData]);
+
+  // Synchronize dashboard and auto-close modal on upload success
+  const handleUploadSuccess = useCallback(async (summary) => {
+    // 1. Reset pagination and filters to show newest transactions
+    setPage(1);
+    setVarianceOnly(false);
+    setSelectedCategory(null);
+
+    // 2. Immediately reload full dashboard state
+    await loadDashboardData(1, false, null);
+
+    // 3. Trigger sleek status notification toast
+    const inserted = summary?.inserted_count ?? summary?.total_processed ?? 0;
+    const anomalies = summary?.anomalies_flagged_count ?? summary?.anomalies_detected ?? 0;
+    setToastMessage({
+      title: 'Batch Ingestion Complete',
+      description: `${inserted} transactions processed & synchronized into ledger (${anomalies} micro-drain anomalies flagged).`,
+    });
+    setTimeout(() => setToastMessage(null), 5000);
+  }, [loadDashboardData]);
+
+  const handleCloseUploadModal = useCallback(() => {
+    setIsUploadOpen(false);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const handleAuthSuccess = (user) => {
     const verifiedUser = user || authStorage.getUser() || { full_name: 'MCA Scholar' };
@@ -127,12 +155,43 @@ export default function App() {
       {/* Subtle, fixed top-center radial glow */}
       <div className="obsidian-radial-glow" />
 
+      {/* Floating Ingestion Confirmation Toast */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -24, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -24, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
+            className="fixed top-20 right-6 z-50 max-w-md bg-[#0D121D]/95 border border-emerald-500/40 text-emerald-300 p-4 rounded-2xl shadow-[0_0_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-xl flex items-start gap-3"
+          >
+            <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5 shrink-0 border border-emerald-500/30">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div className="flex-1 text-xs">
+              <span className="font-bold text-slate-50 block mb-0.5 tracking-tight">
+                {toastMessage.title}
+              </span>
+              <span className="text-slate-300 font-medium">
+                {toastMessage.description}
+              </span>
+            </div>
+            <button
+              onClick={() => setToastMessage(null)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.08] transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Glassmorphic Navbar */}
       <Navbar
         currentUser={currentUser}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenSandbox={() => setIsSandboxOpen(true)}
-        onRefresh={loadDashboardData}
+        onRefresh={() => loadDashboardData()}
         loading={loading}
         onOpenAuth={() => setViewMode('auth')}
         onLogout={handleLogout}
@@ -208,8 +267,8 @@ export default function App() {
       {/* Modals */}
       <DropZone
         isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onUploadSuccess={loadDashboardData}
+        onClose={handleCloseUploadModal}
+        onUploadSuccess={handleUploadSuccess}
       />
 
       <NLPSandboxModal

@@ -87,10 +87,21 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
       // Pass full array of files for concurrent in-browser PapaParse & deduplication
       const summary = await api.uploadCSV(selectedFiles);
       setResult(summary);
-      if (onUploadSuccess) onUploadSuccess();
+      
+      // Update global/parent state immediately
+      if (onUploadSuccess) {
+        await onUploadSuccess(summary);
+      }
+      
+      // Reset files queue
+      setSelectedFiles([]);
+      
+      // Auto-close modal immediately upon successful ingestion & state sync
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
       setError(err.message || 'Failed to process CSV statements.');
-    } finally {
       setUploading(false);
     }
   };
@@ -131,10 +142,20 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
 
       const summary = await api.uploadCSV([file1, file2]);
       setResult(summary);
-      if (onUploadSuccess) onUploadSuccess();
+
+      // Update global/parent state immediately
+      if (onUploadSuccess) {
+        await onUploadSuccess(summary);
+      }
+
+      setSelectedFiles([]);
+
+      // Auto-close modal immediately
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
       setError(err.message || 'Failed to ingest sample batch statements.');
-    } finally {
       setUploading(false);
     }
   };
