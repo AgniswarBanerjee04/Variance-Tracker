@@ -1,8 +1,7 @@
 /**
  * Variance Tracker — In-Browser Client-Side Analytics & Anomaly Engine.
  *
- * MCA Minor Project: Micro-Expenditure & Anomaly Detection System
- * Meghnad Saha Institute of Technology
+ * Micro-Expenditure & Anomaly Detection System (MCA Minor Project)
  *
  * Supports multi-file batch upload, PapaParse concurrent parsing (Promise.all),
  * automated cross-file entity deduplication, and consolidated vendor analytics.
@@ -14,9 +13,37 @@ import Papa from 'papaparse';
 export const CLIENT_TXS_KEY = 'vt_client_transactions';
 export const CLIENT_USER_KEY = 'vt_auth_user';
 export const CLIENT_TOKEN_KEY = 'vt_auth_token';
+export const CLIENT_MISC_LIMIT_KEY = 'vt_misc_spend_limit';
 
-// Micro-spend anomaly threshold
+// Default Limits
 export const MICRO_SPEND_THRESHOLD = 500.0;
+export const DEFAULT_MISC_LIMIT = 2000.0;
+
+/**
+ * Persisted user-defined maximum spend limit for miscellaneous / micro-anomaly items.
+ */
+export function getMiscSpendLimit() {
+  try {
+    const val = localStorage.getItem(CLIENT_MISC_LIMIT_KEY);
+    if (!val) return DEFAULT_MISC_LIMIT;
+    const num = parseFloat(val);
+    return isNaN(num) || num <= 0 ? DEFAULT_MISC_LIMIT : num;
+  } catch {
+    return DEFAULT_MISC_LIMIT;
+  }
+}
+
+export function setMiscSpendLimit(limit) {
+  try {
+    const num = parseFloat(limit);
+    const validLimit = isNaN(num) || num <= 0 ? DEFAULT_MISC_LIMIT : roundTwoDecimals(num);
+    localStorage.setItem(CLIENT_MISC_LIMIT_KEY, String(validLimit));
+    return validLimit;
+  } catch (err) {
+    console.warn('[Variance Tracker] Failed to save misc spend limit:', err);
+    return DEFAULT_MISC_LIMIT;
+  }
+}
 
 // Standard 3NF Category Entities
 export const DEFAULT_CATEGORIES = [
@@ -200,15 +227,24 @@ export function analyzeTransaction(rawUpiString, amount = 100.0, threshold = MIC
 
 /**
  * Storage helpers for in-browser client database.
+ * Returns an empty array by default so the application starts with a clean empty state.
  */
 export function getStoredTransactions() {
   try {
     const raw = localStorage.getItem(CLIENT_TXS_KEY);
-    if (!raw) return seedInitialTransactions();
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : seedInitialTransactions();
+    if (!Array.isArray(parsed)) return [];
+    // Purge any legacy seed transactions to ensure clean empty initial state
+    const realTransactions = parsed.filter(
+      (t) => !String(t.id || '').startsWith('seed-tx-') && t.source_file !== 'seed_statement.csv'
+    );
+    if (realTransactions.length !== parsed.length) {
+      saveStoredTransactions(realTransactions);
+    }
+    return realTransactions;
   } catch {
-    return seedInitialTransactions();
+    return [];
   }
 }
 
@@ -421,7 +457,7 @@ export async function parseBatchCSVStatements(filesArray) {
       // Construct candidate transaction
       const candidateTx = {
         id: `tx-${Date.now()}-${fileIdx}-${rowIdx}`,
-        user_id: 'scholar-demo-user',
+        user_id: 'user-profile',
         date: parsedDate,
         amount: roundTwoDecimals(amount),
         raw_description: rawDesc,
@@ -484,6 +520,19 @@ export async function parseBatchCSVStatements(filesArray) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
+  // Step 6: Calculate sum of miscellaneous / micro-anomaly spending & check user budget limit
+  const currentMiscLimit = getMiscSpendLimit();
+  let cumulativeMiscSpend = 0.0;
+  for (const tx of mergedDataset) {
+    const isMisc = tx.category_id === 6 || tx.category?.name === 'Miscellaneous';
+    const isAnomaly = Boolean(tx.variance_flag);
+    if (isMisc || isAnomaly) {
+      cumulativeMiscSpend += Number(tx.amount || 0);
+    }
+  }
+  cumulativeMiscSpend = roundTwoDecimals(cumulativeMiscSpend);
+  const isMiscLimitExceeded = cumulativeMiscSpend > currentMiscLimit;
+
   return {
     total_files_processed: filesArray.length,
     total_rows_processed: totalRows,
@@ -499,6 +548,10 @@ export async function parseBatchCSVStatements(filesArray) {
     anomalies_detected: anomalies,
     normal_spends: inserted - anomalies,
     total_expenditure_parsed: roundTwoDecimals(totalSpend),
+    // Miscellaneous spend limit metrics
+    misc_spend_total: cumulativeMiscSpend,
+    misc_spend_limit: currentMiscLimit,
+    misc_limit_exceeded: isMiscLimitExceeded,
   };
 }
 

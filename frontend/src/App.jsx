@@ -10,8 +10,10 @@ import DropZone from './components/DropZone';
 import NLPSandboxModal from './components/NLPSandboxModal';
 import AuthPage from './components/AuthPage';
 import ErrorBoundary from './components/ErrorBoundary';
+import MiscSpendAlertModal from './components/MiscSpendAlertModal';
+import BudgetLimitModal from './components/BudgetLimitModal';
 import { api, authStorage } from './services/api';
-import { GraduationCap, CheckCircle2, X } from 'lucide-react';
+import { GraduationCap, CheckCircle2, X, UploadCloud, Upload } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
@@ -19,9 +21,18 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isSandboxOpen, setIsSandboxOpen] = useState(false);
+  const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Analytics states
+  // Miscellaneous spend limit and prominent alert modal state
+  const [miscLimit, setMiscLimit] = useState(() => api.getMiscSpendLimit());
+  const [miscAlertData, setMiscAlertData] = useState({
+    isOpen: false,
+    limit: 2000,
+    totalSpend: 0,
+  });
+
+  // Analytics states (defaults to null / 0 for clean initial empty state)
   const [metrics, setMetrics] = useState(null);
   const [burnRateData, setBurnRateData] = useState(null);
   const [categoricalData, setCategoricalData] = useState(null);
@@ -45,7 +56,6 @@ export default function App() {
           authStorage.setUser(user);
         })
         .catch(() => {
-          // Token expired or invalid
           authStorage.removeToken();
           setCurrentUser(null);
         });
@@ -98,7 +108,7 @@ export default function App() {
     }
   }, [viewMode, loadDashboardData]);
 
-  // Synchronize dashboard and auto-close modal on upload success
+  // Synchronize dashboard, check budget limits, and auto-close modal on upload success
   const handleUploadSuccess = useCallback(async (summary) => {
     // 1. Reset pagination and filters to show newest transactions
     setPage(1);
@@ -108,7 +118,16 @@ export default function App() {
     // 2. Immediately reload full dashboard state
     await loadDashboardData(1, false, null);
 
-    // 3. Trigger sleek status notification toast
+    // 3. Check if miscellaneous / micro-anomaly spending exceeds user's defined limit
+    if (summary?.misc_limit_exceeded) {
+      setMiscAlertData({
+        isOpen: true,
+        limit: summary.misc_spend_limit || miscLimit,
+        totalSpend: summary.misc_spend_total || 0,
+      });
+    }
+
+    // 4. Trigger sleek status notification toast
     const inserted = summary?.inserted_count ?? summary?.total_processed ?? 0;
     const anomalies = summary?.anomalies_flagged_count ?? summary?.anomalies_detected ?? 0;
     setToastMessage({
@@ -116,7 +135,7 @@ export default function App() {
       description: `${inserted} transactions processed & synchronized into ledger (${anomalies} micro-drain anomalies flagged).`,
     });
     setTimeout(() => setToastMessage(null), 5000);
-  }, [loadDashboardData]);
+  }, [loadDashboardData, miscLimit]);
 
   const handleCloseUploadModal = useCallback(() => {
     setIsUploadOpen(false);
@@ -124,7 +143,7 @@ export default function App() {
   }, [loadDashboardData]);
 
   const handleAuthSuccess = (user) => {
-    const verifiedUser = user || authStorage.getUser() || { full_name: 'MCA Scholar' };
+    const verifiedUser = user || authStorage.getUser() || { full_name: 'User Profile' };
     setCurrentUser(verifiedUser);
     setViewMode('dashboard');
     loadDashboardData();
@@ -147,6 +166,8 @@ export default function App() {
       </ErrorBoundary>
     );
   }
+
+  const hasData = totalTransactions > 0 || (metrics?.total_transactions > 0);
 
   return (
     <ErrorBoundary>
@@ -191,6 +212,8 @@ export default function App() {
         currentUser={currentUser}
         onOpenUpload={() => setIsUploadOpen(true)}
         onOpenSandbox={() => setIsSandboxOpen(true)}
+        onOpenBudgetLimit={() => setIsBudgetModalOpen(true)}
+        miscLimit={miscLimit}
         onRefresh={() => loadDashboardData()}
         loading={loading}
         onOpenAuth={() => setViewMode('auth')}
@@ -203,40 +226,72 @@ export default function App() {
         {/* Metric Cards Banner with Framer Motion & CountUp */}
         <MetricCards metrics={metrics} />
 
-        {/* 2-Column Grid: Daily Burn Rate & Categorical Variance Heatmap */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <DailyBurnRatePanel
-            data={burnRateData}
-            averageBurn={burnRateData?.average_daily_burn}
-            highestSpendDay={burnRateData?.highest_spend_date}
-          />
-          <CategoricalVariancePanel data={categoricalData} />
-        </div>
+        {/* Conditional View: When Empty State, hide charts and show clean Upload Prompt */}
+        {!hasData ? (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="obsidian-card rounded-3xl p-10 sm:p-14 text-center flex flex-col items-center justify-center space-y-4 border border-dashed border-white/[0.12] my-4"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-sky-400 shadow-[0_0_20px_-3px_rgba(56,189,248,0.25)]">
+              <UploadCloud className="w-8 h-8" />
+            </div>
+            <div className="max-w-md space-y-1.5">
+              <h3 className="text-lg font-bold text-slate-100 tracking-tight">
+                No Statement Ingested Yet
+              </h3>
+              <p className="text-sm text-slate-400 font-medium">
+                Upload a CSV to view your analytics.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUploadOpen(true)}
+              className="mt-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-2 cursor-pointer transform-gpu active:scale-95"
+            >
+              <Upload className="w-4 h-4" />
+              <span>Upload Statement CSV</span>
+            </button>
+          </motion.div>
+        ) : (
+          <>
+            {/* 2-Column Grid: Daily Burn Rate & Categorical Variance Heatmap */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <DailyBurnRatePanel
+                data={burnRateData}
+                averageBurn={burnRateData?.average_daily_burn}
+                highestSpendDay={burnRateData?.highest_spend_date}
+              />
+              <CategoricalVariancePanel data={categoricalData} />
+            </div>
 
-        {/* Identified Anomalies List Panel */}
-        <AnomalyListPanel anomaliesData={anomaliesData} />
+            {/* Identified Anomalies List Panel */}
+            <AnomalyListPanel anomaliesData={anomaliesData} />
 
-        {/* 3NF Transaction Ledger Table */}
-        <TransactionLedgerTable
-          transactions={transactions}
-          total={totalTransactions}
-          page={page}
-          limit={20}
-          onPageChange={setPage}
-          varianceOnly={varianceOnly}
-          onToggleVariance={(val) => {
-            setVarianceOnly(val);
-            setPage(1);
-          }}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={(val) => {
-            setSelectedCategory(val);
-            setPage(1);
-          }}
-        />
+            {/* 3NF Transaction Ledger Table */}
+            <TransactionLedgerTable
+              transactions={transactions}
+              total={totalTransactions}
+              page={page}
+              limit={20}
+              onPageChange={setPage}
+              varianceOnly={varianceOnly}
+              onToggleVariance={(val) => {
+                setVarianceOnly(val);
+                setPage(1);
+              }}
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onSelectCategory={(val) => {
+                setSelectedCategory(val);
+                setPage(1);
+              }}
+            />
+          </>
+        )}
 
-        {/* SLEEK GLASS-PANELED ACADEMIC WATERMARK (TASK 3 DIRECTIVE) */}
+        {/* Academic Project Subheader / Watermark */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -249,7 +304,7 @@ export default function App() {
                 <GraduationCap className="w-4 h-4" />
               </div>
               <p className="text-xs sm:text-sm font-medium text-slate-400 tracking-wide">
-                Developed by Agniswar Banerjee &amp; Abhirup Dasgupta | Program: MCA | Department of Computer Applications | Meghnad Saha Institute of Technology
+                Variance Tracker &bull; Micro-Expenditure &amp; Anomaly Detection System &bull; MCA Minor Project
               </p>
             </div>
           </div>
@@ -264,17 +319,38 @@ export default function App() {
         </p>
       </footer>
 
-      {/* Modals */}
+      {/* Ingestion DropZone Modal */}
       <DropZone
         isOpen={isUploadOpen}
         onClose={handleCloseUploadModal}
         onUploadSuccess={handleUploadSuccess}
       />
 
+      {/* NLP Sandbox Modal */}
       <NLPSandboxModal
         isOpen={isSandboxOpen}
         onClose={() => setIsSandboxOpen(false)}
       />
+
+      {/* Prominent Miscellaneous Spend Limit Alert Modal */}
+      <MiscSpendAlertModal
+        isOpen={miscAlertData.isOpen}
+        onClose={() => setMiscAlertData((prev) => ({ ...prev, isOpen: false }))}
+        limit={miscAlertData.limit}
+        totalSpend={miscAlertData.totalSpend}
+      />
+
+      {/* Budget Limit Configuration Modal */}
+      <BudgetLimitModal
+        isOpen={isBudgetModalOpen}
+        onClose={() => setIsBudgetModalOpen(false)}
+        currentLimit={miscLimit}
+        onLimitSaved={(newLimit) => {
+          setMiscLimit(newLimit);
+          loadDashboardData();
+        }}
+      />
+
       </div>
     </ErrorBoundary>
   );

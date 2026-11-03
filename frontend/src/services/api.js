@@ -1,8 +1,7 @@
 /**
  * Variance Tracker — 100% Client-Side API & Data Service.
  *
- * MCA Minor Project: Micro-Expenditure & Anomaly Detection System
- * Meghnad Saha Institute of Technology
+ * Micro-Expenditure & Anomaly Detection System (MCA Minor Project)
  *
  * All external HTTP/Fetch/Axios calls to FastAPI backend have been completely removed.
  * Ingestion, string normalization, and micro-spend anomaly detection execute entirely
@@ -17,6 +16,8 @@ import {
   getCategoricalVariance as computeCategoricalVariance,
   getAnomaliesList as computeAnomaliesList,
   listTransactions as computeListTransactions,
+  getMiscSpendLimit,
+  setMiscSpendLimit,
   DEFAULT_CATEGORIES,
   CLIENT_USER_KEY,
   CLIENT_TOKEN_KEY,
@@ -48,9 +49,9 @@ export const api = {
   // Authentication (Client-side authenticated session)
   async login(email, password) {
     const verifiedUser = {
-      id: 'scholar-msit-2026',
-      email: email || 'scholar@msit.edu.in',
-      full_name: email === 'scholar@msit.edu.in' ? 'MCA Research Scholar' : (email.split('@')[0] || 'MCA Scholar'),
+      id: 'user-profile-2026',
+      email: email || 'user@example.com',
+      full_name: 'User Profile',
       created_at: new Date().toISOString(),
     };
     const token = 'vt-client-jwt-' + Date.now();
@@ -65,9 +66,9 @@ export const api = {
 
   async signup(email, password, fullName) {
     const newUser = {
-      id: 'scholar-' + Date.now(),
-      email,
-      full_name: fullName || 'MCA Scholar',
+      id: 'user-' + Date.now(),
+      email: email || 'user@example.com',
+      full_name: fullName || 'User Profile',
       created_at: new Date().toISOString(),
     };
     const token = 'vt-client-jwt-' + Date.now();
@@ -80,15 +81,24 @@ export const api = {
     const user = authStorage.getUser();
     if (user) return user;
     return {
-      id: 'scholar-msit-2026',
-      email: 'scholar@msit.edu.in',
-      full_name: 'MCA Research Scholar',
+      id: 'user-profile-2026',
+      email: 'user@example.com',
+      full_name: 'User Profile',
       created_at: new Date().toISOString(),
     };
   },
 
   logout() {
     authStorage.removeToken();
+  },
+
+  // Miscellaneous Spend Limit (Persistent in localStorage)
+  getMiscSpendLimit() {
+    return getMiscSpendLimit();
+  },
+
+  setMiscSpendLimit(limit) {
+    return setMiscSpendLimit(limit);
   },
 
   // Top-Level KPI Summary

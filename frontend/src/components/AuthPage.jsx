@@ -25,8 +25,8 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
   const [successMsg, setSuccessMsg] = useState('');
 
   const handleQuickFillDemo = () => {
-    setEmail('scholar@msit.edu.in');
-    setPassword('ResearchPass@2026');
+    setEmail('user@example.com');
+    setPassword('UserPass@2026');
     setError('');
   };
 
@@ -187,7 +187,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Agniswar Banerjee"
+                    placeholder="e.g. User Profile"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-slate-50 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500/70 transition-colors duration-200"
                   />
                 </div>
@@ -196,7 +196,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
 
             <div>
               <label className="block text-[11px] font-medium text-slate-300 uppercase tracking-wider mb-1.5">
-                Institutional Email
+                Email Address
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -205,7 +205,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="scholar@msit.edu.in"
+                  placeholder="user@example.com"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-slate-50 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500/70 transition-colors duration-200"
                 />
               </div>
@@ -271,10 +271,10 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
         </motion.div>
       </main>
 
-      {/* Developer Footer with Lowered Opacity (Task 3 Directive) */}
+      {/* Footer */}
       <footer className="w-full max-w-4xl z-10 py-4 text-center">
         <p className="text-xs text-slate-400 font-medium tracking-wide">
-          Developed by Agniswar Banerjee &amp; Abhirup Dasgupta | Program: MCA | Department of Computer Applications | Meghnad Saha Institute of Technology
+          Variance Tracker &bull; Micro-Expenditure &amp; Anomaly Detection System &bull; MCA Minor Project
         </p>
       </footer>
 

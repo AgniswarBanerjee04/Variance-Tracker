@@ -1,10 +1,12 @@
 import React from 'react';
-import { Activity, ShieldAlert, Upload, Cpu, RefreshCw, GraduationCap, LogOut, User } from 'lucide-react';
+import { Activity, ShieldAlert, Upload, Cpu, RefreshCw, GraduationCap, LogOut, User, SlidersHorizontal } from 'lucide-react';
 
 function NavbarBase({
   currentUser,
   onOpenUpload,
   onOpenSandbox,
+  onOpenBudgetLimit,
+  miscLimit,
   onRefresh,
   loading,
   onOpenAuth,
@@ -29,13 +31,24 @@ function NavbarBase({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-medium hidden sm:block">
-              MCA Minor Project &bull; Meghnad Saha Institute of Technology
+              MCA Minor Project
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
         <div className="flex items-center space-x-2 sm:space-x-2.5">
+          {/* Budget Limit Config Button */}
+          <button
+            onClick={onOpenBudgetLimit}
+            className="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-300 hover:text-white bg-[#0D121D]/75 hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.18] transition-all duration-200 flex items-center gap-1.5 backdrop-blur-md cursor-pointer"
+            title="Configure Miscellaneous Spend Limit"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden md:inline font-mono">Limit: ₹{Number(miscLimit || 2000).toLocaleString('en-IN')}</span>
+            <span className="md:hidden">Limit</span>
+          </button>
+
           <button
             onClick={onOpenSandbox}
             className="px-3 py-1.5 rounded-xl text-xs font-medium text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-1.5 transform-gpu active:scale-95 cursor-pointer"
@@ -69,11 +82,11 @@ function NavbarBase({
                 <div
                   className="px-2.5 py-1 rounded-xl bg-[#0D121D]/75 border border-white/[0.08] hover:border-white/[0.18] text-slate-200 text-xs flex items-center gap-1.5 backdrop-blur-md cursor-pointer transition-all duration-200"
                   onClick={onOpenAuth}
-                  title="View / Switch Scholar Account"
+                  title="View Profile"
                 >
-                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                  <User className="w-3.5 h-3.5 text-indigo-400" />
                   <span className="hidden lg:inline font-medium">
-                    {currentUser?.full_name || currentUser?.name || currentUser?.email || 'Scholar'}
+                    User Profile
                   </span>
                 </div>
                 <button
@@ -90,7 +103,7 @@ function NavbarBase({
                 className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-1.5 transform-gpu active:scale-95 cursor-pointer"
               >
                 <User className="w-3.5 h-3.5 text-indigo-100" />
-                <span>Scholar Login</span>
+                <span>Login</span>
               </button>
             )}
           </div>

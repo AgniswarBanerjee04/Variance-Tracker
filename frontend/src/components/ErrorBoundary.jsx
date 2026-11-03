@@ -104,7 +104,7 @@ export default class ErrorBoundary extends React.Component {
             </div>
 
             <div className="mt-4 text-center text-[10px] text-slate-400 font-mono">
-              Variance Tracker &bull; Error Boundary Protected &bull; Meghnad Saha Institute of Technology
+              Variance Tracker &bull; Error Boundary Protected &bull; MCA Minor Project
             </div>
 
           </div>
