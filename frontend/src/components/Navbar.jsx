@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Activity,
   ShieldCheck,
@@ -10,6 +11,9 @@ import {
   SlidersHorizontal,
   Sun,
   Moon,
+  ChevronDown,
+  Mail,
+  CheckCircle2,
 } from 'lucide-react';
 import { authStorage } from '../services/api';
 
@@ -17,10 +21,17 @@ import { authStorage } from '../services/api';
  * Navbar / Header Component
  *
  * Implements:
- * 1. Force Auth State Synchronization: Subscribed to props and localStorage session state,
+ * 1. Isolated Profile Badge Click: Clicking the username badge toggles an interactive dropdown menu
+ *    instead of instantly logging out.
+ * 2. Standard Dropdown Profile Menu:
+ *    - Glassmorphic card (bg-white/95 dark:bg-slate-900/95, backdrop-blur-2xl, border-white/10).
+ *    - Displays full user credentials ("Signed in as: [Full Email Address]").
+ *    - Dedicated destructive Logout button with rose hover effects at the bottom.
+ *    - Click outside & Escape key listeners to close automatically.
+ * 3. Force Auth State Synchronization: Subscribed to props and localStorage session state,
  *    strictly evaluating: const displayUsername = user?.email ? user.email.split('@')[0] : (user?.name || 'Guest User');
- * 2. Explicitly mounted Theme Toggle component positioned IMMEDIATELY TO THE LEFT of the username badge.
- * 3. Direct DOM Modification: Actively toggles the 'dark' class on document.documentElement (<html> tag).
+ * 4. Explicitly mounted Theme Toggle component positioned IMMEDIATELY TO THE LEFT of the username badge.
+ * 5. Direct DOM Modification: Actively toggles the 'dark' class on document.documentElement (<html> tag).
  */
 export function Navbar({
   currentUser,
@@ -36,11 +47,9 @@ export function Navbar({
   onToggleTheme,
 }) {
   // 1. Force Auth State Synchronization:
-  // Maintain a reactive user state synchronized with props AND session storage (authStorage)
   const [user, setUser] = useState(() => currentUser || authStorage.getUser());
 
   useEffect(() => {
-    // Keep in sync with currentUser prop or local session
     const activeUser = currentUser || authStorage.getUser();
     setUser(activeUser);
   }, [currentUser]);
@@ -66,7 +75,37 @@ export function Navbar({
     ? user.email.split('@')[0]
     : (user?.name || 'Guest User');
 
-  // 2. System-wide Theme State:
+  // 2. Profile Dropdown State & Click-Outside Handler:
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsProfileOpen(false);
+      }
+    };
+
+    if (isProfileOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isProfileOpen]);
+
+  // 3. System-wide Theme State:
   const [theme, setTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -87,8 +126,7 @@ export function Navbar({
     }
   }, [controlledTheme, theme]);
 
-  // 3. Verify & Execute DOM Modification:
-  // Actively toggles the 'dark' class on document.documentElement (<html> tag)
+  // 4. Verify & Execute DOM Modification:
   const handleToggleTheme = useCallback(() => {
     const root = document.documentElement;
     const isDark = root.classList.contains('dark');
@@ -188,7 +226,7 @@ export function Navbar({
           {/* User Profile & Theme Controls */}
           <div className="pl-2.5 flex items-center space-x-2">
 
-            {/* 2. Theme Toggle Button - Explicitly Mounted IMMEDIATELY TO THE LEFT of the username profile badge */}
+            {/* 1. Theme Toggle Button - Positioned IMMEDIATELY TO THE LEFT of the username profile badge */}
             <button
               type="button"
               id="theme-toggle"
@@ -204,29 +242,118 @@ export function Navbar({
               )}
             </button>
 
-            {/* Username Profile Badge - Displays {displayUsername} */}
-            <div
-              className="px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-[#0D121D]/90 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-800 dark:text-slate-200 text-xs flex items-center gap-2 backdrop-blur-md cursor-pointer transition-all duration-200 shadow-sm"
-              onClick={onOpenAuth}
-              title={`Authenticated Profile: ${displayUsername}`}
-            >
-              <div className="w-5 h-5 rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-mono text-[10px] font-bold">
-                {displayUsername.charAt(0).toUpperCase()}
-              </div>
-              <span className="font-mono font-semibold text-slate-800 dark:text-slate-100">
-                {displayUsername}
-              </span>
-            </div>
-
-            {/* Sign Out (when authenticated) or Login Button */}
+            {/* 2. Interactive Profile Badge with Dropdown Container */}
             {user ? (
-              <button
-                onClick={onLogout}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors duration-200 cursor-pointer"
-                title="Sign Out"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
+              <div className="relative" ref={profileMenuRef}>
+                {/* Clickable Profile Badge: Toggles Dropdown (No instant logout) */}
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen((prev) => !prev)}
+                  className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-2 backdrop-blur-md cursor-pointer transition-all duration-200 shadow-sm ${
+                    isProfileOpen
+                      ? 'bg-slate-200 dark:bg-white/[0.12] border-indigo-500/40 text-slate-900 dark:text-white ring-2 ring-indigo-500/20'
+                      : 'bg-slate-100/90 dark:bg-[#0D121D]/90 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-800 dark:text-slate-200'
+                  }`}
+                  aria-expanded={isProfileOpen}
+                  aria-haspopup="true"
+                  title="View Profile Details"
+                >
+                  <div className="w-5 h-5 rounded-full bg-indigo-500/15 dark:bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-300 font-mono text-[10px] font-bold shrink-0">
+                    {displayUsername.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-mono font-semibold text-slate-800 dark:text-slate-100 max-w-[120px] sm:max-w-[160px] truncate">
+                    {displayUsername}
+                  </span>
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                      isProfileOpen ? 'rotate-180 text-indigo-500 dark:text-indigo-300' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* 3. Standard Glassmorphic Profile Dropdown Menu */}
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.5)] z-50 overflow-hidden font-sans"
+                    >
+                      {/* User Identity Header */}
+                      <div className="p-4 border-b border-slate-100 dark:border-white/[0.08] bg-slate-50/50 dark:bg-white/[0.02]">
+                        <p className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                          Signed in as
+                        </p>
+                        <p
+                          className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate mt-0.5"
+                          title={user?.email || 'scholar@university.edu'}
+                        >
+                          {user?.email || 'scholar@university.edu'}
+                        </p>
+                        
+                        <div className="flex items-center gap-1.5 mt-2.5">
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            <span>ACTIVE SESSION</span>
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-mono text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10">
+                            MCA Terminal
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick Details & System Controls */}
+                      <div className="p-2 space-y-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            if (onOpenBudgetLimit) onOpenBudgetLimit();
+                          }}
+                          className="w-full px-3 py-2 rounded-xl text-xs text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors flex items-center justify-between group cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+                            <span>Monthly Spend Limit</span>
+                          </div>
+                          <span className="text-[10px] font-mono font-semibold text-slate-500 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200">
+                            ₹{Number(miscLimit || 2000).toLocaleString('en-IN')}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            if (onOpenSandbox) onOpenSandbox();
+                          }}
+                          className="w-full px-3 py-2 rounded-xl text-xs text-left text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <Cpu className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
+                          <span>NLP UPI Sandbox</span>
+                        </button>
+                      </div>
+
+                      {/* 4. Dedicated Destructive Logout Action Button */}
+                      <div className="p-2 border-t border-slate-100 dark:border-white/[0.08] bg-slate-50/30 dark:bg-white/[0.01]">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            if (onLogout) onLogout();
+                          }}
+                          className="w-full px-3 py-2 rounded-xl text-xs text-left text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 dark:hover:bg-rose-500/15 border border-transparent hover:border-rose-500/20 transition-all flex items-center gap-2 font-medium cursor-pointer"
+                        >
+                          <LogOut className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                          <span>Sign Out of Terminal</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             ) : (
               <button
                 onClick={onOpenAuth}
