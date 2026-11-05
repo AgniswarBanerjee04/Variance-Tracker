@@ -207,17 +207,23 @@ function TransactionLedgerTableBase({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.25 }}
-      className="obsidian-card p-6 rounded-2xl"
+      className="p-6 rounded-2xl bg-gradient-to-b from-white/[0.05] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
     >
+      {/* Top Reflection Highlight */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
       {/* Header and Filter Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-base font-bold text-slate-50 tracking-tight flex items-center gap-2">
+          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase block mb-1">
+            LEDGER ENTITY MATRIX
+          </span>
+          <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
             <Database className="w-4 h-4 text-sky-400" />
-            3NF Transaction Ledger
+            3NF Normalized Transaction Ledger
           </h2>
           <p className="text-xs text-slate-400 font-medium mt-1">
             Normalized bank records with privacy masking. Click &ldquo;View&rdquo; on any row to reveal where money was spent.

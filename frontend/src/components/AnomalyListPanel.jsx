@@ -127,21 +127,27 @@ function AnomalyListPanelBase({ anomaliesData }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="obsidian-card p-6 flex flex-col h-full rounded-2xl"
+      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white/[0.05] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
     >
+      {/* Top Reflection Highlight */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
+          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase block mb-1">
+            ANOMALY DETECTION FEED
+          </span>
           <div className="flex items-center space-x-2">
-            <h2 className="text-base font-bold text-slate-50 tracking-tight flex items-center gap-2">
+            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-rose-400" />
               Identified Micro-Expenditure Anomalies
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-300 border border-rose-500/20">
-              <CountUp end={totalAnomalies} duration={1.2} preserveValue /> Flagged
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+              <CountUp end={totalAnomalies} duration={1.2} preserveValue /> FLAGGED
             </span>
           </div>
           <p className="text-xs text-slate-400 font-medium mt-1">
@@ -150,8 +156,8 @@ function AnomalyListPanelBase({ anomaliesData }) {
         </div>
 
         <div className="px-3.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-right self-start sm:self-auto backdrop-blur-md shadow-sm">
-          <span className="text-[10px] uppercase font-medium text-rose-300 block">Total Drain</span>
-          <span className="text-sm font-semibold text-rose-300 font-mono flex items-baseline justify-end">
+          <span className="text-[9px] uppercase font-mono font-semibold text-rose-300 block tracking-wider">TOTAL LEAKAGE</span>
+          <span className="text-sm font-bold text-rose-300 font-mono flex items-baseline justify-end">
             <span>₹</span>
             <CountUp end={totalDrain} decimals={2} duration={1.5} separator="," preserveValue />
           </span>

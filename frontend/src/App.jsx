@@ -370,8 +370,19 @@ export default function App() {
             currentUser={currentUser}
           />
         ) : (
-          <>
-            {/* Metric Cards Banner with Framer Motion & CountUp */}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 },
+              },
+            }}
+            className="space-y-8"
+          >
+            {/* Metric Cards Banner with Framer Motion Stagger & CountUp */}
             <MetricCards metrics={metrics} />
 
             {/* 2-Column Grid: Daily Burn Rate & Categorical Variance Heatmap */}
@@ -406,7 +417,7 @@ export default function App() {
                 setPage(1);
               }}
             />
-          </>
+          </motion.div>
         )}
 
         {/* Academic Project Subheader / Watermark */}
@@ -416,12 +427,12 @@ export default function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="w-full pt-2"
         >
-          <div className="obsidian-card p-4 sm:p-5 relative text-center">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white/[0.04] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 text-center relative shadow-sm">
             <div className="flex items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-indigo-400 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-indigo-400 shrink-0">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <p className="text-xs sm:text-sm font-medium text-slate-400 tracking-wide">
+              <p className="text-xs sm:text-sm font-medium text-slate-400 tracking-wide font-sans">
                 Variance Tracker &bull; Micro-Expenditure &amp; Anomaly Detection System &bull; MCA Minor Project
               </p>
             </div>

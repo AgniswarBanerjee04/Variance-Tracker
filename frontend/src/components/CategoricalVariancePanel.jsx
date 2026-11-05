@@ -12,7 +12,7 @@ import {
 } from 'recharts';
 import { PieChart, Layers } from 'lucide-react';
 
-// Memoized Bar Tooltip to prevent re-renders
+// Memoized Bar Tooltip
 const CustomBarTooltip = React.memo(function CustomBarTooltip({ active, payload, label }) {
   if (active && payload && payload.length) {
     const total = payload.find((p) => p.dataKey === 'total_spend')?.value || 0;
@@ -20,19 +20,19 @@ const CustomBarTooltip = React.memo(function CustomBarTooltip({ active, payload,
     const pct = total > 0 ? ((anomaly / total) * 100).toFixed(1) : 0;
 
     return (
-      <div className="bg-[#0D111A]/90 border border-white/[0.08] p-3.5 rounded-xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md text-xs">
-        <p className="text-slate-50 font-bold mb-2">{label}</p>
+      <div className="bg-[#0D121D]/95 border border-white/10 p-3.5 rounded-xl shadow-[0_12px_35px_-5px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-xl text-xs font-mono">
+        <p className="text-white font-bold mb-2 text-[11px] uppercase tracking-wider">{label}</p>
         <div className="space-y-1.5 font-mono">
-          <div className="flex justify-between items-center gap-5 text-sky-400 font-medium">
-            <span className="font-sans text-slate-300 font-normal">Category Spend:</span>
-            <span>₹{total.toFixed(2)}</span>
+          <div className="flex justify-between items-center gap-5 text-slate-300">
+            <span className="font-sans text-slate-400 font-normal">Category Total:</span>
+            <span className="font-bold text-white">₹{total.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center gap-5 text-rose-400 font-medium">
-            <span className="font-sans text-slate-300 font-normal">Micro-Anomaly Leak:</span>
-            <span>₹{anomaly.toFixed(2)}</span>
+          <div className="flex justify-between items-center gap-5 text-rose-400">
+            <span className="font-sans text-slate-400 font-normal">Micro-Anomaly Leak:</span>
+            <span className="font-bold">₹{anomaly.toFixed(2)}</span>
           </div>
-          <div className="pt-2 border-t border-white/[0.08] flex justify-between items-center gap-5 text-amber-300 font-semibold">
-            <span className="font-sans text-slate-200 font-medium">Variance Leak Ratio:</span>
+          <div className="pt-2 border-t border-white/10 flex justify-between items-center gap-5 text-amber-400 font-semibold">
+            <span className="font-sans text-slate-300 font-medium">Variance Leak Ratio:</span>
             <span>{pct}%</span>
           </div>
         </div>
@@ -42,11 +42,11 @@ const CustomBarTooltip = React.memo(function CustomBarTooltip({ active, payload,
   return null;
 });
 
-// Memoized Bar Chart wrapper
+// Memoized Bar Chart wrapper with Executive Palette
 const CategoricalBarChart = React.memo(function CategoricalBarChart({ items }) {
   if (!items || items.length === 0) {
     return (
-      <div className="h-full flex items-center justify-center text-slate-400 text-xs font-medium">
+      <div className="h-full flex items-center justify-center text-slate-400 text-xs font-mono font-medium">
         No categorical records available yet.
       </div>
     );
@@ -56,24 +56,32 @@ const CategoricalBarChart = React.memo(function CategoricalBarChart({ items }) {
     <ResponsiveContainer width="100%" height="100%" debounce={50}>
       <BarChart data={items} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-        <XAxis dataKey="category_name" stroke="#64748b" tick={{ fontSize: 11, fill: '#94a3b8' }} />
-        <YAxis stroke="#64748b" tick={{ fontSize: 11, fill: '#94a3b8' }} tickFormatter={(val) => `₹${val}`} />
+        <XAxis
+          dataKey="category_name"
+          stroke="#64748b"
+          tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'monospace' }}
+        />
+        <YAxis
+          stroke="#64748b"
+          tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'monospace' }}
+          tickFormatter={(val) => `₹${val}`}
+        />
         <Tooltip content={<CustomBarTooltip />} />
         <Legend
           verticalAlign="top"
           align="right"
-          height={30}
+          height={32}
           iconType="circle"
-          wrapperStyle={{ fontSize: '11px', paddingBottom: '10px' }}
+          wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace', paddingBottom: '8px' }}
         />
-        <Bar dataKey="total_spend" name="Category Total" fill="#38bdf8" radius={[6, 6, 0, 0]} />
-        <Bar dataKey="anomaly_spend" name="Micro-Anomaly Leak" fill="#fb7185" radius={[6, 6, 0, 0]} />
+        <Bar dataKey="total_spend" name="Category Total" fill="#38BDF8" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="anomaly_spend" name="Micro-Anomaly Leak" fill="#FB7185" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
 });
 
-// Memoized Heatmap item row
+// Memoized Heatmap item row with Executive Terminal Styling
 const HeatmapItem = React.memo(function HeatmapItem({ cat }) {
   const isHighRisk = cat.variance_percentage >= 50;
   const isModerateRisk = cat.variance_percentage > 0 && cat.variance_percentage < 50;
@@ -82,16 +90,16 @@ const HeatmapItem = React.memo(function HeatmapItem({ cat }) {
     <div
       className={`p-3 rounded-xl border backdrop-blur-md transition-all duration-200 transform-gpu will-change-transform ${
         isHighRisk
-          ? 'bg-rose-500/10 border-rose-500/25 hover:border-rose-400/40'
+          ? 'bg-rose-500/10 border-rose-500/25 hover:border-rose-400/40 shadow-sm'
           : isModerateRisk
-          ? 'bg-amber-500/10 border-amber-500/20 hover:border-amber-400/35'
+          ? 'bg-amber-500/10 border-amber-500/20 hover:border-amber-400/35 shadow-sm'
           : 'bg-[#07090E]/60 border-white/[0.06] hover:border-white/[0.14]'
       }`}
     >
       <div className="flex items-center justify-between text-xs mb-1.5">
-        <span className="font-semibold text-slate-200">{cat.category_name}</span>
+        <span className="font-semibold text-slate-200 font-sans">{cat.category_name}</span>
         <span
-          className={`font-mono font-medium px-2 py-0.5 rounded-full text-[10px] ${
+          className={`font-mono font-bold px-2 py-0.5 rounded-full text-[10px] ${
             isHighRisk
               ? 'bg-rose-500/15 text-rose-300 border border-rose-500/25'
               : isModerateRisk
@@ -99,14 +107,14 @@ const HeatmapItem = React.memo(function HeatmapItem({ cat }) {
               : 'bg-white/[0.04] text-slate-400 border border-white/[0.08]'
           }`}
         >
-          {cat.variance_percentage}% Leak
+          {cat.variance_percentage}% LEAK
         </span>
       </div>
 
       {/* Progress track */}
-      <div className="w-full bg-black/40 rounded-full h-1.5 overflow-hidden">
+      <div className="w-full bg-black/50 rounded-full h-1.5 overflow-hidden">
         <div
-          className={`h-full rounded-full ${
+          className={`h-full rounded-full transition-all duration-500 ${
             isHighRisk
               ? 'bg-rose-400'
               : isModerateRisk
@@ -118,9 +126,9 @@ const HeatmapItem = React.memo(function HeatmapItem({ cat }) {
       </div>
 
       <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1.5 font-mono">
-        <span>Spend: ₹{(Number(cat?.total_spend) || 0).toFixed(0)}</span>
-        <span className="text-rose-400 font-medium">
-          Drain: ₹{(Number(cat?.anomaly_spend) || 0).toFixed(0)}
+        <span>SPEND: ₹{(Number(cat?.total_spend) || 0).toFixed(0)}</span>
+        <span className="text-rose-400 font-semibold">
+          DRAIN: ₹{(Number(cat?.anomaly_spend) || 0).toFixed(0)}
         </span>
       </div>
     </div>
@@ -128,7 +136,6 @@ const HeatmapItem = React.memo(function HeatmapItem({ cat }) {
 });
 
 function CategoricalVariancePanelBase({ data }) {
-  // Heavy data extraction wrapped in useMemo
   const items = useMemo(() => {
     return data?.items || [];
   }, [data]);
@@ -137,44 +144,49 @@ function CategoricalVariancePanelBase({ data }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.15 }}
-      className="obsidian-card p-6 flex flex-col h-full rounded-2xl"
+      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white/[0.05] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
     >
+      {/* Top Reflection Highlight */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-base font-bold text-slate-50 tracking-tight flex items-center gap-2">
-            <PieChart className="w-4 h-4 text-violet-400" />
-            Categorical Variance Heatmap & Distribution
+          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase block mb-1">
+            CATEGORICAL RISK MATRIX
+          </span>
+          <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+            <PieChart className="w-4 h-4 text-sky-400" />
+            Categorical Variance Heatmap &amp; Distribution
           </h2>
           <p className="text-xs text-slate-400 font-medium mt-1">
-            Breakdown across normalized 3NF categories isolating non-essential micro-expenditure leaks.
+            Normalized ledger distribution showing capital allocation and non-essential anomaly leakage.
           </p>
         </div>
 
         {dominantCategory && (
-          <div className="px-3 py-1.5 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-xs text-violet-300 flex items-center gap-1.5 self-start sm:self-auto backdrop-blur-md shadow-sm">
-            <Layers className="w-3.5 h-3.5" />
-            <span>Dominant: <strong className="text-slate-50 font-bold">{dominantCategory}</strong></span>
+          <div className="px-3 py-1.5 rounded-xl bg-[#07090E]/80 border border-white/10 text-right backdrop-blur-md shadow-sm shrink-0">
+            <span className="text-[9px] uppercase font-mono font-semibold text-slate-400 block tracking-wider">DOMINANT EXPENSE</span>
+            <span className="text-xs font-bold text-sky-400 font-mono">
+              {dominantCategory}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Main Bar Chart */}
-      <div className="h-[240px] w-full mb-6 transform-gpu">
-        <CategoricalBarChart items={items} />
-      </div>
+      {/* Main Content Area */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-stretch">
+        {/* Left Column: Recharts Bar Chart */}
+        <div className="w-full min-h-[220px] sm:min-h-[250px] flex flex-col">
+          <CategoricalBarChart items={items} />
+        </div>
 
-      {/* Categorical Variance Heatmap Grid */}
-      <div className="border-t border-white/[0.08] pt-4 space-y-3">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          Micro-Variance Risk Heatmap
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {items.map((cat) => (
+        {/* Right Column: Categorical Heatmap Matrix */}
+        <div className="flex flex-col justify-between space-y-2.5 overflow-y-auto max-h-[300px] pr-1">
+          {items.slice(0, 4).map((cat) => (
             <HeatmapItem key={cat.category_id} cat={cat} />
           ))}
         </div>
