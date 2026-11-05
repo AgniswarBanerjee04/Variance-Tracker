@@ -17,35 +17,35 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.25) }}
-      className="p-3.5 rounded-xl bg-[#0D121D]/50 hover:bg-white/[0.04] transition-all duration-150 border border-white/[0.06] hover:border-white/[0.14] backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group transform-gpu will-change-transform"
+      className="p-3.5 rounded-xl bg-slate-100/80 dark:bg-[#0D121D]/50 hover:bg-slate-200/60 dark:hover:bg-white/[0.04] transition-all duration-150 border border-slate-200 dark:border-white/[0.06] hover:border-slate-300 dark:hover:border-white/[0.14] backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 group transform-gpu will-change-transform"
     >
       <div className="flex items-start gap-3 flex-1 min-w-0">
-        <div className="p-2 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 shadow-[0_0_12px_-2px_rgba(244,63,94,0.25)] shrink-0 mt-0.5 sm:mt-0">
+        <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20 shadow-[0_0_12px_-2px_rgba(244,63,94,0.25)] shrink-0 mt-0.5 sm:mt-0">
           <AlertTriangle className="w-3.5 h-3.5" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             {isRevealed ? (
-              <span className="font-bold text-slate-50 text-xs truncate">
+              <span className="font-bold text-slate-900 dark:text-slate-50 text-xs truncate">
                 {merchantStr}
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] text-slate-500 font-mono text-[11px] select-none">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-200/70 dark:bg-white/[0.03] border border-slate-300 dark:border-white/[0.06] text-slate-500 font-mono text-[11px] select-none">
                 <Lock className="w-2.5 h-2.5 text-slate-500" />
                 <span>••••••••••</span>
               </div>
             )}
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-300 border border-white/[0.08] flex items-center gap-1 font-sans">
-              <Tag className="w-2.5 h-2.5 text-sky-400" />
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-white/[0.04] text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-white/[0.08] flex items-center gap-1 font-sans">
+              <Tag className="w-2.5 h-2.5 text-sky-500 dark:text-sky-400" />
               {catStr}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1 font-mono">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 font-mono">
               <Calendar className="w-2.5 h-2.5" />
               {dateStr}
             </span>
           </div>
           {isRevealed ? (
-            <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono truncate mt-0.5">
               {item?.raw_description || ''}
             </p>
           ) : (
@@ -53,8 +53,8 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
               Vendor and narration hidden by privacy shield
             </p>
           )}
-          <p className="text-[11px] text-rose-300 font-medium mt-1 flex items-center gap-1">
-            <Info className="w-3 h-3 text-rose-400 shrink-0" />
+          <p className="text-[11px] text-rose-600 dark:text-rose-300 font-medium mt-1 flex items-center gap-1">
+            <Info className="w-3 h-3 text-rose-500 dark:text-rose-400 shrink-0" />
             <span>{reasonStr}</span>
           </p>
         </div>
@@ -62,7 +62,7 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
 
       <div className="text-right shrink-0 self-end sm:self-auto font-mono flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-rose-400">
+          <span className="text-sm font-bold text-rose-600 dark:text-rose-400">
             -₹{amountNum.toFixed(2)}
           </span>
           <button
@@ -70,16 +70,16 @@ const AnomalyRow = React.memo(function AnomalyRow({ item, index }) {
             onClick={() => setIsRevealed((prev) => !prev)}
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border transition-all cursor-pointer ${
               isRevealed
-                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                : 'bg-sky-500/10 text-sky-400 border-sky-500/30 hover:bg-sky-500/20'
+                ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                : 'bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/30 hover:bg-sky-500/20'
             }`}
             title={isRevealed ? 'Hide vendor' : 'View vendor'}
           >
-            {isRevealed ? <EyeOff className="w-3 h-3 text-amber-400" /> : <Eye className="w-3 h-3 text-sky-400" />}
+            {isRevealed ? <EyeOff className="w-3 h-3 text-amber-500 dark:text-amber-400" /> : <Eye className="w-3 h-3 text-sky-500 dark:text-sky-400" />}
             <span>{isRevealed ? 'Hide' : 'View'}</span>
           </button>
         </div>
-        <span className="text-[10px] text-slate-400 font-medium font-sans">
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium font-sans">
           Micro-Spend Leak
         </span>
       </div>
@@ -130,34 +130,34 @@ function AnomalyListPanelBase({ anomaliesData }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
-      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white/[0.05] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
+      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white via-slate-50/80 to-white dark:from-white/[0.05] dark:via-[#0D121D]/80 dark:to-[#07090E]/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
     >
       {/* Top Reflection Highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-200 dark:via-white/15 to-transparent" />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase block mb-1">
+          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase block mb-1">
             ANOMALY DETECTION FEED
           </span>
           <div className="flex items-center space-x-2">
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 dark:text-rose-400" />
               Identified Micro-Expenditure Anomalies
             </h2>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30">
               <CountUp end={totalAnomalies} duration={1.2} preserveValue /> FLAGGED
             </span>
           </div>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
             Micro-spends (&le; ₹500) isolated by NLP as recurring non-essential cash drains.
           </p>
         </div>
 
         <div className="px-3.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-right self-start sm:self-auto backdrop-blur-md shadow-sm">
-          <span className="text-[9px] uppercase font-mono font-semibold text-rose-300 block tracking-wider">TOTAL LEAKAGE</span>
-          <span className="text-sm font-bold text-rose-300 font-mono flex items-baseline justify-end">
+          <span className="text-[9px] uppercase font-mono font-semibold text-rose-600 dark:text-rose-300 block tracking-wider">TOTAL LEAKAGE</span>
+          <span className="text-sm font-bold text-rose-600 dark:text-rose-300 font-mono flex items-baseline justify-end">
             <span>₹</span>
             <CountUp end={totalDrain} decimals={2} duration={1.5} separator="," preserveValue />
           </span>
@@ -173,19 +173,19 @@ function AnomalyListPanelBase({ anomaliesData }) {
             placeholder="Search merchant, raw description, or reason..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500/70 transition backdrop-blur-md"
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-100/90 dark:bg-[#07090E]/80 border border-slate-200 dark:border-white/[0.08] text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500/70 transition backdrop-blur-md"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
+          <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="py-2 px-3 rounded-xl bg-[#07090E]/80 border border-white/[0.08] text-xs text-slate-200 focus:outline-none focus:border-indigo-500/70 transition backdrop-blur-md"
+            className="py-2 px-3 rounded-xl bg-slate-100/90 dark:bg-[#07090E]/80 border border-slate-200 dark:border-white/[0.08] text-xs text-slate-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500/70 transition backdrop-blur-md"
           >
             {categories.map((cat) => (
-              <option key={cat} value={cat} className="bg-[#0D121D] text-slate-200">
+              <option key={cat} value={cat} className="bg-white dark:bg-[#0D121D] text-slate-800 dark:text-slate-200">
                 {cat}
               </option>
             ))}

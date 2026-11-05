@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Lock,
@@ -14,6 +14,8 @@ import {
   Loader2,
   ShieldCheck,
   Activity,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -97,8 +99,31 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
     },
   };
 
+  const [authTheme, setAuthTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return document.documentElement.classList.contains('dark') ? 'dark' : (localStorage.getItem('theme') || 'dark');
+    }
+    return 'dark';
+  });
+
+  const toggleAuthTheme = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    const next = isDark ? 'light' : 'dark';
+    if (next === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+    try {
+      localStorage.setItem('theme', next);
+    } catch {}
+    setAuthTheme(next);
+  };
+
   return (
-    <div className="relative min-h-screen bg-[#07090E] text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden selection:bg-indigo-500/30 selection:text-indigo-200">
+    <div className="relative min-h-screen bg-[#F8FAFC] dark:bg-[#07090E] text-slate-900 dark:text-slate-100 flex flex-col justify-between items-center p-4 sm:p-6 overflow-hidden selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-300">
       
       {/* 1. Ambient Background: Dark Animated Mesh & Floating Orbital Glowing Spheres */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
@@ -153,10 +178,10 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
         />
 
         {/* Subtle dot matrix texture for high-stakes corporate fintech depth */}
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] opacity-60" />
+        <div className="absolute inset-0 bg-[radial-gradient(#00000008_1px,transparent_1px)] dark:bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:20px_20px] opacity-60" />
       </div>
 
-      {/* Top Header Row with Skip Demo Button */}
+      {/* Top Header Row with Skip Demo & Theme Toggle */}
       <motion.header
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -164,26 +189,44 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
         className="w-full max-w-md pt-2 flex items-center justify-between z-10"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-sky-400 backdrop-blur-md shadow-[0_0_15px_-3px_rgba(56,189,248,0.3)]">
+          <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] flex items-center justify-center text-sky-500 dark:text-sky-400 backdrop-blur-md shadow-sm">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <span className="font-bold text-sm text-slate-50 tracking-tight">Variance Tracker</span>
-            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-300 border border-white/[0.08]">
+            <span className="font-bold text-sm text-slate-900 dark:text-slate-50 tracking-tight">Variance Tracker</span>
+            <span className="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08]">
               v1.0 MCA
             </span>
           </div>
         </div>
 
-        {onBypass && (
-          <button
-            onClick={onBypass}
-            className="text-xs text-slate-400 hover:text-slate-100 px-3 py-1.5 rounded-xl bg-[#0D121D]/75 hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.18] backdrop-blur-md transition-all duration-200 flex items-center gap-1.5 cursor-pointer"
+        <div className="flex items-center gap-2">
+          {/* Light / Dark Mode Toggle */}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleAuthTheme}
+            className="p-1.5 rounded-xl text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100/90 dark:bg-[#0D121D]/75 border border-slate-200 dark:border-white/[0.08] backdrop-blur-md transition-all cursor-pointer shadow-sm"
+            title="Toggle Theme"
           >
-            <span>Skip Demo</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        )}
+            {authTheme === 'dark' ? (
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-sky-500" />
+            )}
+          </motion.button>
+
+          {onBypass && (
+            <button
+              onClick={onBypass}
+              className="text-xs text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-[#0D121D]/75 hover:bg-slate-200/90 dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.18] backdrop-blur-md transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <span>Skip Demo</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </motion.header>
 
       {/* Main Centered Authentication Area with 6. Staggered Entrance */}
@@ -193,13 +236,13 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="w-full rounded-3xl p-7 sm:p-9 bg-gradient-to-b from-white/[0.06] via-[#0D121D]/85 to-[#07090E]/95 backdrop-blur-2xl border border-white/10 shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.15)] relative overflow-hidden"
+          className="w-full rounded-3xl p-7 sm:p-9 bg-gradient-to-b from-white/95 via-slate-50/90 to-white/95 dark:from-white/[0.06] dark:via-[#0D121D]/85 dark:to-[#07090E]/95 backdrop-blur-2xl border border-slate-200 dark:border-white/10 shadow-xl dark:shadow-[0_25px_70px_-15px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.15)] relative overflow-hidden"
         >
           {/* Subtle Ambient Radial Highlight on Card's Top Edge */}
           <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-36 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
 
           {/* 3. Fluid Tab Switching with Framer Motion layoutId */}
-          <motion.div variants={itemVariants} className="relative flex p-1.5 rounded-2xl bg-[#07090E]/80 border border-white/10 mb-6 backdrop-blur-md shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+          <motion.div variants={itemVariants} className="relative flex p-1.5 rounded-2xl bg-slate-100 dark:bg-[#07090E]/80 border border-slate-200 dark:border-white/10 mb-6 backdrop-blur-md shadow-inner">
             <button
               type="button"
               onClick={() => {
@@ -216,7 +259,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                 />
               )}
-              <span className={`relative z-10 transition-colors duration-200 ${isLogin ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`}>
+              <span className={`relative z-10 transition-colors duration-200 ${isLogin ? 'text-white font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                 Sign In
               </span>
             </button>
@@ -237,7 +280,7 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                   transition={{ type: 'spring', stiffness: 420, damping: 32 }}
                 />
               )}
-              <span className={`relative z-10 transition-colors duration-200 ${!isLogin ? 'text-white font-bold' : 'text-slate-400 hover:text-slate-200'}`}>
+              <span className={`relative z-10 transition-colors duration-200 ${!isLogin ? 'text-white font-bold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}>
                 Create Account
               </span>
             </button>
@@ -245,10 +288,10 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
 
           {/* Card Title & Institutional Subtitle */}
           <motion.div variants={itemVariants} className="text-center mb-6">
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400 bg-clip-text text-transparent">
               {isLogin ? 'Scholar Authentication' : 'Initialize Profile'}
             </h1>
-            <p className="text-xs text-slate-400 font-medium mt-1.5 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1.5 leading-relaxed">
               {isLogin
                 ? 'Sign in to access 3NF normalized ledger & anomaly analytics'
                 : 'Create scholar profile to calibrate anomaly thresholds'}
@@ -294,58 +337,58 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.25 }}
               >
-                <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                   Full Name
                 </label>
                 <div className="relative group">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-400" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-500 dark:group-focus-within:text-sky-400" />
                   <input
                     type="text"
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Alex Morgan"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#07090E]/90 border border-white/10 text-slate-50 placeholder-slate-500 text-xs shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-100/90 dark:bg-[#07090E]/90 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500 text-xs shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
                   />
                 </div>
               </motion.div>
             )}
 
             <motion.div variants={itemVariants}>
-              <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Email Address
               </label>
               <div className="relative group">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-400" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-500 dark:group-focus-within:text-sky-400" />
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="scholar@university.edu"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[#07090E]/90 border border-white/10 text-slate-50 placeholder-slate-500 text-xs shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-100/90 dark:bg-[#07090E]/90 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500 text-xs shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
                 />
               </div>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative group">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-400" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 transition-colors group-focus-within:text-sky-500 dark:group-focus-within:text-sky-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-[#07090E]/90 border border-white/10 text-slate-50 placeholder-slate-500 text-xs font-mono shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
+                  className="w-full pl-10 pr-10 py-2.5 rounded-2xl bg-slate-100/90 dark:bg-[#07090E]/90 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-slate-50 placeholder-slate-400 dark:placeholder-slate-500 text-xs font-mono shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400/60 focus:shadow-[0_0_20px_-3px_rgba(99,102,241,0.35)] transition-all duration-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors duration-150 cursor-pointer p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors duration-150 cursor-pointer p-1"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -358,9 +401,9 @@ function AuthPageBase({ onAuthSuccess, onBypass }) {
                 <button
                   type="button"
                   onClick={handleQuickFillDemo}
-                  className="text-indigo-400 hover:text-sky-300 text-[11px] font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all duration-150 cursor-pointer"
+                  className="text-indigo-600 dark:text-indigo-400 hover:text-sky-600 dark:hover:text-sky-300 text-[11px] font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 transition-all duration-150 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                   <span>Fill Demo Credentials</span>
                 </button>
                 <span className="text-[10px] text-slate-500 font-medium">In-Browser Isolated Session</span>

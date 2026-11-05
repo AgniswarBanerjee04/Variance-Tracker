@@ -20,23 +20,23 @@ const CustomTooltip = React.memo(function CustomTooltip({ active, payload, label
     const anomaly = payload[1]?.value || 0;
     const total = normal + anomaly;
     return (
-      <div className="bg-[#0D121D]/95 border border-white/10 p-3.5 rounded-xl shadow-[0_12px_35px_-5px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-xl text-xs font-mono">
-        <p className="text-slate-300 font-semibold mb-2.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
-          <Calendar className="w-3.5 h-3.5 text-sky-400" />
+      <div className="bg-white/95 dark:bg-[#0D121D]/95 border border-slate-200 dark:border-white/10 p-3.5 rounded-xl shadow-lg dark:shadow-[0_12px_35px_-5px_rgba(0,0,0,0.8),inset_0_1px_0_0_rgba(255,255,255,0.1)] backdrop-blur-xl text-xs font-mono">
+        <p className="text-slate-700 dark:text-slate-300 font-semibold mb-2.5 flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
+          <Calendar className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
           <span>{label}</span>
         </p>
         <div className="space-y-1.5">
-          <div className="flex justify-between items-center gap-6 text-slate-300">
-            <span className="font-sans text-slate-400">Standard Spend:</span>
-            <span className="font-bold text-white">₹{normal.toFixed(2)}</span>
+          <div className="flex justify-between items-center gap-6 text-slate-700 dark:text-slate-300">
+            <span className="font-sans text-slate-500 dark:text-slate-400">Standard Spend:</span>
+            <span className="font-bold text-slate-900 dark:text-white">₹{normal.toFixed(2)}</span>
           </div>
-          <div className="flex justify-between items-center gap-6 text-rose-400">
-            <span className="font-sans text-slate-400">Micro-Anomaly Leak:</span>
+          <div className="flex justify-between items-center gap-6 text-rose-600 dark:text-rose-400">
+            <span className="font-sans text-slate-500 dark:text-slate-400">Micro-Anomaly Leak:</span>
             <span className="font-bold">₹{anomaly.toFixed(2)}</span>
           </div>
-          <div className="pt-2 border-t border-white/10 flex justify-between items-center gap-6 text-slate-50 font-bold">
-            <span className="font-sans text-slate-300">Total Capital Depleted:</span>
-            <span className="text-amber-400">₹{total.toFixed(2)}</span>
+          <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex justify-between items-center gap-6 text-slate-900 dark:text-slate-50 font-bold">
+            <span className="font-sans text-slate-600 dark:text-slate-300">Total Capital Depleted:</span>
+            <span className="text-amber-600 dark:text-amber-400">₹{total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -127,37 +127,37 @@ function DailyBurnRatePanelBase({ data, averageBurn, highestSpendDay }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.1 }}
-      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white/[0.05] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
+      className="p-6 flex flex-col h-full rounded-2xl bg-gradient-to-b from-white via-slate-50/80 to-white dark:from-white/[0.05] dark:via-[#0D121D]/80 dark:to-[#07090E]/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6),inset_0_1px_0_0_rgba(255,255,255,0.1)] relative overflow-hidden"
     >
       {/* Top Reflection Highlight */}
-      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-200 dark:via-white/15 to-transparent" />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
-          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-400 uppercase block mb-1">
+          <span className="text-[10px] font-mono font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase block mb-1">
             CAPITAL BURN DYNAMICS
           </span>
-          <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-sky-400" />
+          <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-sky-500 dark:text-sky-400" />
             Daily Burn Rate Trajectory
           </h2>
-          <p className="text-xs text-slate-400 font-medium mt-1">
+          <p className="text-xs text-slate-600 dark:text-slate-400 font-medium mt-1">
             Time-series distribution comparing standard expenditure against low-value micro-spend anomalies.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <div className="px-3 py-1.5 rounded-xl bg-[#07090E]/80 border border-white/10 text-right backdrop-blur-md shadow-sm">
-            <span className="text-[9px] uppercase font-mono font-semibold text-slate-400 block tracking-wider">MEAN VELOCITY</span>
-            <span className="text-xs font-bold text-amber-400 font-mono">
+          <div className="px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-[#07090E]/80 border border-slate-200 dark:border-white/10 text-right backdrop-blur-md shadow-sm">
+            <span className="text-[9px] uppercase font-mono font-semibold text-slate-500 dark:text-slate-400 block tracking-wider">MEAN VELOCITY</span>
+            <span className="text-xs font-bold text-amber-600 dark:text-amber-400 font-mono">
               ₹<CountUp end={Number(averageBurn) || 0} decimals={2} duration={1.4} preserveValue />/DAY
             </span>
           </div>
           {highestSpendDay && (
-            <div className="px-3 py-1.5 rounded-xl bg-[#07090E]/80 border border-white/10 text-right backdrop-blur-md shadow-sm hidden md:block">
-              <span className="text-[9px] uppercase font-mono font-semibold text-slate-400 block tracking-wider">PEAK SPIKE</span>
-              <span className="text-xs font-semibold text-slate-300 font-mono">
+            <div className="px-3 py-1.5 rounded-xl bg-slate-100/90 dark:bg-[#07090E]/80 border border-slate-200 dark:border-white/10 text-right backdrop-blur-md shadow-sm hidden md:block">
+              <span className="text-[9px] uppercase font-mono font-semibold text-slate-500 dark:text-slate-400 block tracking-wider">PEAK SPIKE</span>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 font-mono">
                 {highestSpendDay}
               </span>
             </div>

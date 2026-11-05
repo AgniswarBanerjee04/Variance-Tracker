@@ -32,6 +32,9 @@ export const authStorage = {
   removeToken: () => {
     localStorage.removeItem(CLIENT_TOKEN_KEY);
     localStorage.removeItem(CLIENT_USER_KEY);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth_state_change', { detail: null }));
+    }
   },
   getUser: () => {
     try {
@@ -41,7 +44,12 @@ export const authStorage = {
       return null;
     }
   },
-  setUser: (user) => localStorage.setItem(CLIENT_USER_KEY, JSON.stringify(user)),
+  setUser: (user) => {
+    localStorage.setItem(CLIENT_USER_KEY, JSON.stringify(user));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth_state_change', { detail: user }));
+    }
+  },
 };
 
 /**

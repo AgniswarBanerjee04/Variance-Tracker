@@ -20,6 +20,37 @@ import { GraduationCap, CheckCircle2, X, UploadCloud, Upload } from 'lucide-reac
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => authStorage.getUser());
   
+  // Theme state: Persisted in localStorage and synchronizes with <html> class
+  const [theme, setTheme] = useState(() => {
+    try {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+      return typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? 'dark' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    }
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.warn('Failed to save theme in localStorage', e);
+    }
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   // Mandatory Onboarding Guard: If authenticated but no spend limit is configured in localStorage,
   // enforce onboarding view mode before allowing access to the main dashboard.
   const [viewMode, setViewMode] = useState(() => {
@@ -310,7 +341,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="relative min-h-screen bg-[#07090E] text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
+      <div className="relative min-h-screen bg-[#F8FAFC] dark:bg-[#07090E] text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-300">
       
       {/* Subtle, fixed top-center radial glow */}
       <div className="obsidian-radial-glow" />
@@ -323,22 +354,22 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -24, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.25, 1, 0.5, 1] }}
-            className="fixed top-20 right-6 z-50 max-w-md bg-[#0D121D]/95 border border-emerald-500/40 text-emerald-300 p-4 rounded-2xl shadow-[0_0_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-xl flex items-start gap-3"
+            className="fixed top-20 right-6 z-50 max-w-md bg-white/95 dark:bg-[#0D121D]/95 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 p-4 rounded-2xl shadow-xl dark:shadow-[0_0_25px_-5px_rgba(16,185,129,0.3)] backdrop-blur-xl flex items-start gap-3"
           >
-            <div className="p-1.5 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5 shrink-0 border border-emerald-500/30">
+            <div className="p-1.5 rounded-xl bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0 border border-emerald-500/30">
               <CheckCircle2 className="w-4 h-4" />
             </div>
             <div className="flex-1 text-xs">
-              <span className="font-bold text-slate-50 block mb-0.5 tracking-tight">
+              <span className="font-bold text-slate-900 dark:text-slate-50 block mb-0.5 tracking-tight">
                 {toastMessage.title}
               </span>
-              <span className="text-slate-300 font-medium">
+              <span className="text-slate-600 dark:text-slate-300 font-medium">
                 {toastMessage.description}
               </span>
             </div>
             <button
               onClick={() => setToastMessage(null)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/[0.08] transition-colors cursor-pointer"
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -357,6 +388,8 @@ export default function App() {
         loading={loading}
         onOpenAuth={() => setViewMode('auth')}
         onLogout={handleLogout}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content Area */}
@@ -427,12 +460,12 @@ export default function App() {
           transition={{ duration: 0.5, delay: 0.3 }}
           className="w-full pt-2"
         >
-          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white/[0.04] via-[#0D121D]/80 to-[#07090E]/90 backdrop-blur-xl border border-white/10 text-center relative shadow-sm">
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-white/90 via-slate-100/70 to-white/90 dark:from-white/[0.04] dark:via-[#0D121D]/80 dark:to-[#07090E]/90 backdrop-blur-xl border border-slate-200 dark:border-white/10 text-center relative shadow-sm">
             <div className="flex items-center justify-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-indigo-400 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <p className="text-xs sm:text-sm font-medium text-slate-400 tracking-wide font-sans">
+              <p className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 tracking-wide font-sans">
                 Variance Tracker &bull; Micro-Expenditure &amp; Anomaly Detection System &bull; MCA Minor Project
               </p>
             </div>
@@ -442,7 +475,7 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/[0.06] bg-[#07090E]/80 py-4 text-center text-xs text-slate-400 font-medium backdrop-blur-md">
+      <footer className="relative z-10 border-t border-slate-200 dark:border-white/[0.06] bg-slate-100/80 dark:bg-[#07090E]/80 py-4 text-center text-xs text-slate-500 dark:text-slate-400 font-medium backdrop-blur-md">
         <p>
           Client-Side Engine &bull; In-Browser 3NF Ledger &bull; React & Tailwind &bull; Framer Motion &bull; Recharts &bull; NLP Anomaly Model
         </p>
