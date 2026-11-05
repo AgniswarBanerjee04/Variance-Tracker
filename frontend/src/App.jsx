@@ -12,6 +12,7 @@ import AuthPage from './components/AuthPage';
 import OnboardingLimitModal from './components/OnboardingLimitModal';
 import MiscSpendAlertModal from './components/MiscSpendAlertModal';
 import BudgetLimitModal from './components/BudgetLimitModal';
+import EmptyStateDropZone from './components/EmptyStateDropZone';
 import ErrorBoundary from './components/ErrorBoundary';
 import { api, authStorage } from './services/api';
 import { GraduationCap, CheckCircle2, X, UploadCloud, Upload } from 'lucide-react';
@@ -361,34 +362,13 @@ export default function App() {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 transform-gpu">
         
-        {/* Clean "No Data" Empty State: Shown until user ingests real statement files */}
+        {/* Standout Animated Centerpiece Empty State */}
         {!hasData ? (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="obsidian-card rounded-3xl p-10 sm:p-14 text-center flex flex-col items-center justify-center space-y-4 border border-dashed border-white/[0.12] my-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-sky-400 shadow-[0_0_20px_-3px_rgba(56,189,248,0.25)]">
-              <UploadCloud className="w-8 h-8" />
-            </div>
-            <div className="max-w-md space-y-1.5">
-              <h3 className="text-lg font-bold text-slate-100 tracking-tight">
-                No Statement Ingested Yet
-              </h3>
-              <p className="text-sm text-slate-400 font-medium">
-                Please Ingest a CSV to view analytics
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsUploadOpen(true)}
-              className="mt-2 px-6 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 border border-indigo-400/30 shadow-md shadow-indigo-500/20 transition-all duration-200 flex items-center gap-2 cursor-pointer transform-gpu active:scale-95"
-            >
-              <Upload className="w-4 h-4" />
-              <span>Ingest Statement CSV</span>
-            </button>
-          </motion.div>
+          <EmptyStateDropZone
+            onOpenUpload={() => setIsUploadOpen(true)}
+            onUploadSuccess={handleUploadSuccess}
+            currentUser={currentUser}
+          />
         ) : (
           <>
             {/* Metric Cards Banner with Framer Motion & CountUp */}
