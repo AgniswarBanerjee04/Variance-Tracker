@@ -27,7 +27,7 @@ export default function OnboardingLimitModal({ onComplete, initialUser }) {
     setSaving(true);
     setError(null);
     try {
-      const savedVal = api.setMiscSpendLimit(parsed);
+      const savedVal = api.setMiscSpendLimit(parsed, initialUser);
       setTimeout(() => {
         if (onComplete) {
           onComplete(savedVal);

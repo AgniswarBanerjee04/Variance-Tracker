@@ -13,6 +13,7 @@ export default function BudgetLimitModal({
   onClose,
   currentLimit = 2000,
   onLimitSaved,
+  currentUser,
 }) {
   const [limitInput, setLimitInput] = useState(String(currentLimit));
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -34,7 +35,7 @@ export default function BudgetLimitModal({
       return;
     }
 
-    const savedVal = api.setMiscSpendLimit(parsed);
+    const savedVal = api.setMiscSpendLimit(parsed, currentUser);
     setSavedSuccess(true);
     setError(null);
     if (onLimitSaved) {

@@ -10,18 +10,66 @@
 import Papa from 'papaparse';
 
 // Storage keys
-export const CLIENT_TXS_KEY = 'vt_client_transactions';
 export const CLIENT_USER_KEY = 'vt_auth_user';
 export const CLIENT_TOKEN_KEY = 'vt_auth_token';
-export const CLIENT_MISC_LIMIT_KEY = 'vt_misc_spend_limit';
+
+// Legacy keys cleanup to eliminate any unscoped cross-user data leakage
+try {
+  localStorage.removeItem('vt_client_transactions');
+  localStorage.removeItem('vt_misc_spend_limit');
+} catch {}
 
 // Default Limits
 export const MICRO_SPEND_THRESHOLD = 500.0;
 export const DEFAULT_MISC_LIMIT = 2000.0;
 
-export function hasSavedMiscSpendLimit() {
+function roundTwoDecimals(num) {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Resolves the active user ID for scoping local storage.
+ * Prioritizes passed user object/string, then authenticated session in localStorage.
+ */
+export function resolveCurrentUserId(user = null) {
+  if (user && typeof user === 'string') {
+    return user.trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+  if (user?.id) {
+    return String(user.id).trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
+  if (user?.email) {
+    return String(user.email).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+  }
   try {
-    const val = localStorage.getItem(CLIENT_MISC_LIMIT_KEY);
+    const raw = localStorage.getItem(CLIENT_USER_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed?.id) return String(parsed.id).trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      if (parsed?.email) return String(parsed.email).trim().toLowerCase().replace(/[^a-zA-Z0-9_-]/g, '_');
+    }
+  } catch {}
+  return 'default_usr';
+}
+
+/**
+ * User-scoped storage keys enforcing complete tenant data isolation.
+ * Keys: `variance_data_${user.id}` and `variance_limit_${user.id}`
+ */
+export function getUserTransactionsKey(user = null) {
+  const uid = resolveCurrentUserId(user);
+  return `variance_data_${uid}`;
+}
+
+export function getUserMiscLimitKey(user = null) {
+  const uid = resolveCurrentUserId(user);
+  return `variance_limit_${uid}`;
+}
+
+export function hasSavedMiscSpendLimit(user = null) {
+  try {
+    const key = getUserMiscLimitKey(user);
+    const val = localStorage.getItem(key);
     return Boolean(val && !isNaN(parseFloat(val)) && parseFloat(val) > 0);
   } catch {
     return false;
@@ -30,10 +78,12 @@ export function hasSavedMiscSpendLimit() {
 
 /**
  * Persisted user-defined maximum spend limit for miscellaneous / micro-anomaly items.
+ * Strictly scoped to the authenticated user ID.
  */
-export function getMiscSpendLimit() {
+export function getMiscSpendLimit(user = null) {
   try {
-    const val = localStorage.getItem(CLIENT_MISC_LIMIT_KEY);
+    const key = getUserMiscLimitKey(user);
+    const val = localStorage.getItem(key);
     if (!val) return DEFAULT_MISC_LIMIT;
     const num = parseFloat(val);
     return isNaN(num) || num <= 0 ? DEFAULT_MISC_LIMIT : num;
@@ -42,11 +92,12 @@ export function getMiscSpendLimit() {
   }
 }
 
-export function setMiscSpendLimit(limit) {
+export function setMiscSpendLimit(limit, user = null) {
   try {
     const num = parseFloat(limit);
     const validLimit = isNaN(num) || num <= 0 ? DEFAULT_MISC_LIMIT : roundTwoDecimals(num);
-    localStorage.setItem(CLIENT_MISC_LIMIT_KEY, String(validLimit));
+    const key = getUserMiscLimitKey(user);
+    localStorage.setItem(key, String(validLimit));
     return validLimit;
   } catch (err) {
     console.warn('[Variance Tracker] Failed to save misc spend limit:', err);
@@ -237,10 +288,12 @@ export function analyzeTransaction(rawUpiString, amount = 100.0, threshold = MIC
 /**
  * Storage helpers for in-browser client database.
  * Returns an empty array by default so the application starts with a clean empty state.
+ * Scoped to user ID via key: `variance_data_${user.id}`.
  */
-export function getStoredTransactions() {
+export function getStoredTransactions(user = null) {
   try {
-    const raw = localStorage.getItem(CLIENT_TXS_KEY);
+    const key = getUserTransactionsKey(user);
+    const raw = localStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -249,7 +302,7 @@ export function getStoredTransactions() {
       (t) => !String(t.id || '').startsWith('seed-tx-') && t.source_file !== 'seed_statement.csv'
     );
     if (realTransactions.length !== parsed.length) {
-      saveStoredTransactions(realTransactions);
+      saveStoredTransactions(realTransactions, user);
     }
     return realTransactions;
   } catch {
@@ -257,19 +310,48 @@ export function getStoredTransactions() {
   }
 }
 
-export function saveStoredTransactions(txs) {
+export function saveStoredTransactions(txs, user = null) {
   try {
-    localStorage.setItem(CLIENT_TXS_KEY, JSON.stringify(txs));
+    const key = getUserTransactionsKey(user);
+    localStorage.setItem(key, JSON.stringify(txs));
   } catch (err) {
     console.warn('[Variance Tracker] Storage warning:', err);
   }
 }
 
-export function clearStoredTransactions() {
+export function clearStoredTransactions(user = null) {
   try {
-    localStorage.removeItem(CLIENT_TXS_KEY);
+    const key = getUserTransactionsKey(user);
+    localStorage.removeItem(key);
+    const limitKey = getUserMiscLimitKey(user);
+    localStorage.removeItem(limitKey);
   } catch (err) {
     console.warn('[Variance Tracker] Storage warning:', err);
+  }
+}
+
+/**
+ * Explicitly clears all variance tracking keys and legacy keys from browser storage.
+ */
+export function clearAllAppStorage() {
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (
+        k &&
+        (k.startsWith('variance_data_') ||
+          k.startsWith('variance_limit_') ||
+          k.startsWith('vt_') ||
+          k === 'vt_client_transactions' ||
+          k === 'vt_misc_spend_limit')
+      ) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+  } catch (err) {
+    console.warn('[Variance Tracker] Failed to clear all app storage:', err);
   }
 }
 
@@ -331,7 +413,7 @@ function parseSingleCSVFile(fileOrBlob) {
  * 5. Consolidates common vendors across different statements/months.
  * 6. Persists the clean master dataset into localStorage.
  */
-export async function parseBatchCSVStatements(filesArray) {
+export async function parseBatchCSVStatements(filesArray, user = null) {
   if (!filesArray || !filesArray.length) {
     throw new Error('No statement files provided for ingestion.');
   }
@@ -351,8 +433,8 @@ export async function parseBatchCSVStatements(filesArray) {
   const categoryCounts = {};
   const vendorCounts = {};
 
-  // Retrieve existing stored transactions to avoid double-counting on re-upload
-  const existingTransactions = getStoredTransactions();
+  // Retrieve existing stored transactions to avoid double-counting on re-upload (scoped to user)
+  const existingTransactions = getStoredTransactions(user);
   const seenKeys = new Set();
 
   // Populate seenKeys from existing stored transactions
@@ -458,7 +540,7 @@ export async function parseBatchCSVStatements(filesArray) {
 
   // Step 5: Merge deduplicated transactions with master dataset
   const mergedDataset = [...newTransactions, ...existingTransactions];
-  saveStoredTransactions(mergedDataset);
+  saveStoredTransactions(mergedDataset, user);
 
   // Consolidated top vendors
   const topVendors = Object.entries(vendorCounts)
@@ -467,7 +549,7 @@ export async function parseBatchCSVStatements(filesArray) {
     .slice(0, 5);
 
   // Step 6: Calculate sum of miscellaneous / micro-anomaly spending & check user budget limit
-  const currentMiscLimit = getMiscSpendLimit();
+  const currentMiscLimit = getMiscSpendLimit(user);
   let cumulativeMiscSpend = 0.0;
   for (const tx of mergedDataset) {
     const isMisc = tx.category_id === 6 || tx.category?.name === 'Miscellaneous';
@@ -504,20 +586,16 @@ export async function parseBatchCSVStatements(filesArray) {
 /**
  * Backward compatibility alias for single file or batch array.
  */
-export async function parseStatementCSV(fileOrFiles) {
+export async function parseStatementCSV(fileOrFiles, user = null) {
   const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
-  return parseBatchCSVStatements(files);
-}
-
-function roundTwoDecimals(num) {
-  return Math.round((num + Number.EPSILON) * 100) / 100;
+  return parseBatchCSVStatements(files, user);
 }
 
 /**
  * Analytics aggregator functions (Ported from analytics_service.py).
  */
-export function getSummaryMetrics() {
-  const txs = getStoredTransactions();
+export function getSummaryMetrics(user = null) {
+  const txs = getStoredTransactions(user);
   let totalSpend = 0;
   let anomCount = 0;
   let anomSpend = 0;
@@ -544,8 +622,8 @@ export function getSummaryMetrics() {
   };
 }
 
-export function getDailyBurnRate(days = 30) {
-  const txs = getStoredTransactions();
+export function getDailyBurnRate(days = 30, user = null) {
+  const txs = getStoredTransactions(user);
   const dayBuckets = {};
 
   for (const t of txs) {
@@ -590,8 +668,8 @@ export function getDailyBurnRate(days = 30) {
   };
 }
 
-export function getCategoricalVariance() {
-  const txs = getStoredTransactions();
+export function getCategoricalVariance(user = null) {
+  const txs = getStoredTransactions(user);
   const catBuckets = {};
 
   for (const t of txs) {
@@ -634,8 +712,8 @@ export function getCategoricalVariance() {
   };
 }
 
-export function getAnomaliesList(limit = 100) {
-  const txs = getStoredTransactions();
+export function getAnomaliesList(limit = 100, user = null) {
+  const txs = getStoredTransactions(user);
   const anomalies = txs
     .filter((t) => t.variance_flag)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -660,8 +738,8 @@ export function getAnomaliesList(limit = 100) {
   };
 }
 
-export function listTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null) {
-  let items = getStoredTransactions().sort((a, b) => new Date(b.date) - new Date(a.date));
+export function listTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null, user = null) {
+  let items = getStoredTransactions(user).sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (varianceOnly) {
     items = items.filter((t) => t.variance_flag);

@@ -23,8 +23,9 @@ export default function App() {
   // enforce onboarding view mode before allowing access to the main dashboard.
   const [viewMode, setViewMode] = useState(() => {
     const token = authStorage.getToken();
-    if (!token) return 'auth';
-    if (!api.hasSavedMiscSpendLimit()) return 'onboarding';
+    const user = authStorage.getUser();
+    if (!token || !user) return 'auth';
+    if (!api.hasSavedMiscSpendLimit(user)) return 'onboarding';
     return 'dashboard';
   });
 
@@ -35,7 +36,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState(null);
 
   // Miscellaneous spend limit and prominent alert modal state
-  const [miscLimit, setMiscLimit] = useState(() => api.getMiscSpendLimit());
+  const [miscLimit, setMiscLimit] = useState(() => api.getMiscSpendLimit(currentUser));
   const [miscAlertData, setMiscAlertData] = useState({
     isOpen: false,
     limit: 2000,
@@ -74,28 +75,74 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [categories, setCategories] = useState([]);
 
+  // Complete state reset function to guarantee blank canvas on user switch or logout
+  const resetDashboardState = useCallback(() => {
+    setMetrics({
+      total_transactions: 0,
+      total_expenditure: 0,
+      total_anomalies_flagged: 0,
+      total_anomaly_drain: 0,
+      average_burn_rate: 0,
+      anomaly_drain_ratio: 0,
+    });
+    setBurnRateData({
+      items: [],
+      average_daily_burn: 0,
+      highest_spend_date: null,
+    });
+    setCategoricalData({
+      items: [],
+      dominant_category: null,
+    });
+    setAnomaliesData({
+      items: [],
+      total_anomalies: 0,
+      total_anomaly_drain: 0,
+    });
+    setTransactions([]);
+    setTotalTransactions(0);
+    setCategories([]);
+    setPage(1);
+    setVarianceOnly(false);
+    setSelectedCategory(null);
+  }, []);
+
+  // Clear State on Auth Change: Whenever currentUser changes or logs out,
+  // immediately reset all transaction arrays to [] and all metric totals to 0.
+  useEffect(() => {
+    resetDashboardState();
+    if (currentUser?.id || currentUser?.email) {
+      setMiscLimit(api.getMiscSpendLimit(currentUser));
+    }
+  }, [currentUser?.id, currentUser?.email, resetDashboardState]);
+
   // Check auth status on load
   useEffect(() => {
     const token = authStorage.getToken();
     if (token) {
       api.getMe()
         .then((user) => {
-          setCurrentUser(user);
-          authStorage.setUser(user);
-          // If no budget limit has been saved, prompt onboarding
-          if (!api.hasSavedMiscSpendLimit()) {
-            setViewMode('onboarding');
+          if (user) {
+            setCurrentUser(user);
+            authStorage.setUser(user);
+            // If no budget limit has been saved for this user, prompt onboarding
+            if (!api.hasSavedMiscSpendLimit(user)) {
+              setViewMode('onboarding');
+            }
+          } else {
+            handleLogout();
           }
         })
         .catch(() => {
-          authStorage.removeToken();
-          setCurrentUser(null);
-          setViewMode('auth');
+          handleLogout();
         });
+    } else {
+      setCurrentUser(null);
+      setViewMode('auth');
     }
   }, []);
 
-  // Fetch all dashboard data
+  // Fetch all dashboard data (strictly scoped to currentUser)
   const loadDashboardData = useCallback(async (forcedPage, forcedVariance, forcedCat) => {
     setLoading(true);
     try {
@@ -111,11 +158,11 @@ export default function App() {
         txsRes,
         catsRes,
       ] = await Promise.all([
-        api.getSummary().catch(() => null),
-        api.getDailyBurnRate(30).catch(() => null),
-        api.getCategoricalVariance().catch(() => null),
-        api.getAnomalies(50).catch(() => null),
-        api.getTransactions(targetPage, 20, targetVariance, targetCat).catch(() => ({ items: [], total: 0 })),
+        api.getSummary(currentUser).catch(() => null),
+        api.getDailyBurnRate(30, currentUser).catch(() => null),
+        api.getCategoricalVariance(currentUser).catch(() => null),
+        api.getAnomalies(50, currentUser).catch(() => null),
+        api.getTransactions(targetPage, 20, targetVariance, targetCat, currentUser).catch(() => ({ items: [], total: 0 })),
         api.getCategories().catch(() => []),
       ]);
 
@@ -133,7 +180,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [page, varianceOnly, selectedCategory]);
+  }, [page, varianceOnly, selectedCategory, currentUser]);
 
   // Re-fetch transactions only when page/filters change AND real statement data exists
   useEffect(() => {
@@ -179,7 +226,8 @@ export default function App() {
   const handleAuthSuccess = (user) => {
     const verifiedUser = user || authStorage.getUser() || { full_name: 'User' };
     setCurrentUser(verifiedUser);
-    if (!api.hasSavedMiscSpendLimit()) {
+    resetDashboardState();
+    if (!api.hasSavedMiscSpendLimit(verifiedUser)) {
       setViewMode('onboarding');
     } else {
       setViewMode('dashboard');
@@ -192,9 +240,31 @@ export default function App() {
     setViewMode('dashboard');
   };
 
+  // Logout Wipe: Explicitly clears localStorage, removes app keys, resets all React state,
+  // and redirects cleanly to authentication screen
   const handleLogout = () => {
-    api.logout();
+    resetDashboardState();
     setCurrentUser(null);
+    setToastMessage(null);
+    setIsUploadOpen(false);
+    setIsSandboxOpen(false);
+    setIsBudgetModalOpen(false);
+    setMiscAlertData({
+      isOpen: false,
+      limit: 2000,
+      totalSpend: 0,
+    });
+    setMiscLimit(2000);
+
+    api.logout(currentUser);
+
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (err) {
+      console.warn('[Variance Tracker] Failed to clear storage on logout:', err);
+    }
+
     setViewMode('auth');
   };
 
@@ -205,11 +275,17 @@ export default function App() {
         <AuthPage
           onAuthSuccess={handleAuthSuccess}
           onBypass={() => {
-            if (!api.hasSavedMiscSpendLimit()) {
-              setViewMode('onboarding');
-            } else {
-              setViewMode('dashboard');
-            }
+            const demoUser = {
+              id: 'usr_demo_guest',
+              email: 'guest@example.com',
+              displayName: 'Guest User',
+              name: 'Guest User',
+              full_name: 'Guest User',
+              created_at: new Date().toISOString(),
+            };
+            authStorage.setUser(demoUser);
+            authStorage.setToken('vt-guest-jwt-' + Date.now());
+            handleAuthSuccess(demoUser);
           }}
         />
       </ErrorBoundary>
@@ -386,6 +462,7 @@ export default function App() {
         isOpen={isUploadOpen}
         onClose={handleCloseUploadModal}
         onUploadSuccess={handleUploadSuccess}
+        currentUser={currentUser}
       />
 
       {/* NLP Sandbox Modal */}
@@ -407,6 +484,7 @@ export default function App() {
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
         currentLimit={miscLimit}
+        currentUser={currentUser}
         onLimitSaved={(newLimit) => {
           setMiscLimit(newLimit);
           loadDashboardData();

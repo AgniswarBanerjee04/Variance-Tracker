@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { api } from '../services/api';
 
-function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
+function DropZoneBase({ isOpen, onClose, onUploadSuccess, currentUser }) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -84,8 +84,8 @@ function DropZoneBase({ isOpen, onClose, onUploadSuccess }) {
     setUploading(true);
     setError(null);
     try {
-      // Pass full array of files for concurrent in-browser PapaParse & deduplication
-      const summary = await api.uploadCSV(selectedFiles);
+      // Pass full array of files for concurrent in-browser PapaParse & deduplication (scoped to currentUser)
+      const summary = await api.uploadCSV(selectedFiles, currentUser);
       setResult(summary);
       
       // Update global/parent state immediately

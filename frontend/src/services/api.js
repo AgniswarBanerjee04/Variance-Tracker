@@ -19,6 +19,8 @@ import {
   getMiscSpendLimit,
   setMiscSpendLimit,
   hasSavedMiscSpendLimit,
+  clearStoredTransactions,
+  clearAllAppStorage,
   DEFAULT_CATEGORIES,
   CLIENT_USER_KEY,
   CLIENT_TOKEN_KEY,
@@ -45,14 +47,17 @@ export const authStorage = {
 /**
  * 100% Client-Side API Service Interface.
  * All methods return Promises matching the original async API contracts.
+ * Fully supports user-scoped persistence to prevent any state leakage between sessions.
  */
 export const api = {
   // Authentication (Client-side authenticated session)
   async login(email, password) {
-    const rawEmail = (email || '').trim();
+    const rawEmail = (email || '').trim().toLowerCase();
     const fallbackUsername = rawEmail.includes('@') ? rawEmail.split('@')[0] : (rawEmail || 'User');
+    const safeId = rawEmail ? rawEmail.replace(/[^a-zA-Z0-9_-]/g, '_') : 'user_' + Date.now();
+    const userId = `usr_${safeId}`;
     const verifiedUser = {
-      id: 'user-' + Date.now(),
+      id: userId,
       email: rawEmail || 'user@example.com',
       displayName: fallbackUsername,
       name: fallbackUsername,
@@ -70,11 +75,13 @@ export const api = {
   },
 
   async signup(email, password, fullName) {
-    const rawEmail = (email || '').trim();
+    const rawEmail = (email || '').trim().toLowerCase();
     const emailFallback = rawEmail.includes('@') ? rawEmail.split('@')[0] : 'User';
     const chosenName = (fullName && fullName.trim()) ? fullName.trim() : emailFallback;
+    const safeId = rawEmail ? rawEmail.replace(/[^a-zA-Z0-9_-]/g, '_') : 'user_' + Date.now();
+    const userId = `usr_${safeId}`;
     const newUser = {
-      id: 'user-' + Date.now(),
+      id: userId,
       email: rawEmail || 'user@example.com',
       displayName: chosenName,
       name: chosenName,
@@ -90,56 +97,53 @@ export const api = {
   async getMe() {
     const user = authStorage.getUser();
     if (user) return user;
-    return {
-      id: 'user-profile-2026',
-      email: 'user@example.com',
-      displayName: 'User',
-      name: 'User',
-      full_name: 'User',
-      created_at: new Date().toISOString(),
-    };
+    return null;
   },
 
-  logout() {
+  logout(user = null) {
     authStorage.removeToken();
+    if (user) {
+      clearStoredTransactions(user);
+    }
+    clearAllAppStorage();
   },
 
-  // Miscellaneous Spend Limit (Persistent in localStorage)
-  hasSavedMiscSpendLimit() {
-    return hasSavedMiscSpendLimit();
+  // Miscellaneous Spend Limit (Scoped per user ID in localStorage)
+  hasSavedMiscSpendLimit(user = null) {
+    return hasSavedMiscSpendLimit(user);
   },
 
-  getMiscSpendLimit() {
-    return getMiscSpendLimit();
+  getMiscSpendLimit(user = null) {
+    return getMiscSpendLimit(user);
   },
 
-  setMiscSpendLimit(limit) {
-    return setMiscSpendLimit(limit);
+  setMiscSpendLimit(limit, user = null) {
+    return setMiscSpendLimit(limit, user);
   },
 
-  // Top-Level KPI Summary
-  async getSummary() {
-    return getSummaryMetrics();
+  // Top-Level KPI Summary (Scoped to user)
+  async getSummary(user = null) {
+    return getSummaryMetrics(user);
   },
 
-  // Daily Burn Rate Time-Series
-  async getDailyBurnRate(days = 30) {
-    return computeDailyBurnRate(days);
+  // Daily Burn Rate Time-Series (Scoped to user)
+  async getDailyBurnRate(days = 30, user = null) {
+    return computeDailyBurnRate(days, user);
   },
 
-  // Categorical Variance Distribution
-  async getCategoricalVariance() {
-    return computeCategoricalVariance();
+  // Categorical Variance Distribution (Scoped to user)
+  async getCategoricalVariance(user = null) {
+    return computeCategoricalVariance(user);
   },
 
-  // Identified Anomalies List
-  async getAnomalies(limit = 100) {
-    return computeAnomaliesList(limit);
+  // Identified Anomalies List (Scoped to user)
+  async getAnomalies(limit = 100, user = null) {
+    return computeAnomaliesList(limit, user);
   },
 
-  // Paginated Transactions Ledger
-  async getTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null) {
-    return computeListTransactions(page, limit, varianceOnly, categoryId);
+  // Paginated Transactions Ledger (Scoped to user)
+  async getTransactions(page = 1, limit = 50, varianceOnly = false, categoryId = null, user = null) {
+    return computeListTransactions(page, limit, varianceOnly, categoryId, user);
   },
 
   // 3NF Categories Listing
@@ -147,9 +151,9 @@ export const api = {
     return DEFAULT_CATEGORIES;
   },
 
-  // In-Browser CSV Ingestion via PapaParse
-  async uploadCSV(file) {
-    return await parseStatementCSV(file);
+  // In-Browser CSV Ingestion via PapaParse (Scoped to user)
+  async uploadCSV(file, user = null) {
+    return await parseStatementCSV(file, user);
   },
 
   // Direct UPI NLP Sandbox Tester
